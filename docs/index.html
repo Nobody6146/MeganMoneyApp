@@ -1,0 +1,103 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <title>MeganMoney | Home</title>
+        <link rel="icon" type="/image/png" href="favicon.png" sizes="16x16">
+        <link rel="manifest" href="manifest.json">
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons"rel="stylesheet">
+        <script src="https://apis.google.com/js/api.js"></script>
+        <link rel="stylesheet" href="styles.css">
+        <script src="lib/soothe.js"></script>
+        <script src="index.js"></script>
+        <script src="js/app.js"></script>
+        <script src="js/auth.js"></script>
+        <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script> -->
+        <!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@0.4.0/dist/chartjs-plugin-datalabels.min.js"></script>  -->
+        <style>
+
+        </style>
+        <!-- iOS Support -->
+        <link rel="apple-touch-icon" href="favicon-144x144.png">
+        <meta name="apple-mobile-web-app-status-bar" content="#0000FF">
+    </head>
+    <body>
+        <nav class="nav sidebar" onclick="App.showSettings();">
+            <a class="nav-item">
+                Settings
+            </a>
+        </nav>
+        <header>
+            <nav class="nav nav-top">
+                <div class="nav-item nav-logo">
+                    <span>MeganMoney</span>
+                </div>
+                <a class="nav-item nav-link-float" onclick="App.showSettings();">
+                    <i class="material-icons nav-icon">settings</i>
+                </a>
+            </nav>
+            <div class="date-picker" onclick="App.showDate();">
+                <div>
+                    Date
+                    <input class="date-picker-input" type="month" soothe-model="app.period" soothe-prop="datePicker value" onchange="datePickerSelectPeriod(this.value)">
+                </div>
+                
+                <span class="material-icons date-picker-icon">arrow_drop_down</span>
+            </div>
+        </header>
+        <main>
+            <div  class="welcome">
+                <img class="welcome-logo" src="icon-144x144.png">
+                <div>
+                    <p>Welcome to MeganMoney</p>
+                    <p>Sign in with Google</p>
+                    <button onclick="App.logIn();">Sign-in</button>
+                    <button onclick="App.logOut();">Sign-out</button>
+                    <p>Signed in as: <span style="color:blue" spa-model="user" spa-prop="name innerText">[INSERT_NAME]</span></p>
+                    <p>Error message: <span spa-model="error" spa-prop="message innerText"></span></p>
+                </div>
+            </div>
+            
+            <div class="main-content">
+
+                
+
+            </div>
+        </main>
+        <footer>
+            <nav class="nav nav-bottom">
+                <a href="#" class="nav-item nav-link nav-item nav-link-active">
+                    <i class="material-icons nav-icon">home</i>
+                    <span class="nav-title">Dashboard</span>
+                </a>
+                <a href="#" class="nav-item nav-link">
+                    <i class="material-icons nav-icon">label</i>
+                    <span class="nav-title">Labels</span>
+                </a>
+                <a href="#" class="nav-item nav-link">
+                    <i class="material-icons nav-icon">sell</i>
+                    <span class="nav-title">Transactions</span>
+                </a>
+                <a href="#" class="nav-item nav-link">
+                    <i class="material-icons nav-icon">credit_score</i>
+                    <span class="nav-title">Budgets</span>
+                </a>
+                <a href="#" class="nav-item nav-link">
+                    <i class="material-icons nav-icon">savings</i>
+                    <span class="nav-title">Savings</span>
+                </a>
+            </nav>
+        </footer>
+        <script>
+            try{
+                window.addEventListener("load", App.start);
+                
+            }
+            catch(error)
+            {
+                App.logError(error);
+            }
+            
+        </script>
+    </body>
+</html>

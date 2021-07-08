@@ -1,0 +1,16 @@
+{
+    "name": "Megan Money",
+    "short_name": "MeganMoney",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "background_color": "#0000FF",
+    "theme_color": "#0000FF",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+           "src": "icon-144x144.png",
+           "type": "image/png",
+           "sizes": "144x144"
+        }
+    ]
+}
