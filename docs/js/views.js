@@ -49,7 +49,7 @@ LoginView.prototype.getRoute = function() {
     return "#login";
 }
 LoginView.prototype.getHTML = function() {
-    return fetch("/views/home/login.html");
+    return fetch("views/home/login.html");
 }
 
 //============ Dashboard ============//
@@ -61,5 +61,5 @@ DashboardView.prototype.getRoute = function() {
     return "#dashboard";
 }
 DashboardView.prototype.getHTML = function() {
-   return fetch("/views/dashboard/index.html");
+   return fetch("views/dashboard/index.html");
 }
