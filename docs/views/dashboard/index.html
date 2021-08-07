@@ -1,40 +1,7 @@
-<span soothe-tmplt="MonthlyReviewTemplate" hidden>
-    <fieldset>
-        <legend style="color:blue" soothe-model="_" soothe-prop="month innerHTML"></legend>
-        <table class="no-border">
-            <thead></thead>
-            <tbody>
-                <tr>
-                    <td>Balance</td>
-                    <td soothe-model="_" soothe-prop="balance innerHTML" soothe-attr="balanceColor style {{color: {{value}}}}"></td>
-                </tr>
-                <tr>
-                    <td>Transactions</td>
-                    <td style="color:blue" soothe-model="_" soothe-prop="transactionCount innerHTML" ></td>
-                </tr>
-            </tbody>
-        </table>
-    </fieldset>
-    <br />
-</span>
-
-<br />
-<div class="page-animation-right" soothe-model="*" soothe-attr="* class {{page-animation-none}}">
-    <table class="no-border">
-        <tbody>
-            <tr>
-                <td>
-                    <span soothe-model="Dashboard" soothe-prop="currentDate innerHTML"></span>
-                </td>
-                <td>
-                    <span style="color:blue" soothe-model="Dashboard" soothe-prop="days innerHTML"></span>
-                    Days Left
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <hr/>
-    <br />
-    <div soothe-model="Dashboard" soothe-comp="monthlyReviews MonthlyReviewTemplate">
+<div class="welcome">
+    <img class="welcome-logo" src="icon-144x144.png">
+    <div>
+        <p>Welcome to MeganMoney</p>
+        <p>Signed in as: <span style="color:blue" spa-model="user" spa-prop="name innerText">[INSERT_NAME]</span></p>
     </div>
 </div>

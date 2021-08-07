@@ -39,6 +39,7 @@ function App() {
     addModelProp("spreadsheets");
     addModelProp("currentSelection");
     addModelProp("newSpreadsheet");
+    addModelProp("navbar");
     App.models.newSpreadsheet.createSpreadsheet = function(domEvent, spaEvent) {
         const name = spaEvent.model.name;
         App.displayWaitingModal();
@@ -93,15 +94,50 @@ App.start = function() {
         else if(App.storage.version != App.latestVersion) {
             App.promptVersionUpgrade();
         }
+
+        App.loadPages();
+        App.displayWaitingModal();
     }
     catch(err) {
         App.logError(error);
-        // App.displayErrorModal(err.toString());
+        App.displayErrorModal(err.toString());
     }
 }
+App.loadPages = function() {
+    //Create views
+    let dashboardView = new DashboardView();
+    let loginView = new LoginView();
+
+    //Bind routes
+    spa.addRoute(".*", (req, res, next) => {
+        //Auth check middleware
+        if(App.isLoggedIn())
+        {
+            return next();
+        }
+        loginView.render.bind(loginView)(req, res, next);
+    });
+    spa.addRoute(dashboardView.getRoute(), dashboardView.render.bind(dashboardView));
+    spa.addRoute(".*", (req, res, next) => {
+        res.app.navigateTo(dashboardView.getRoute());
+    });
+
+    App.models.navbar = {
+        tabs: {
+            dashboard: {style: "nav-item nav-link nav-item", link: dashboardView.getRoute()},
+            labels: {style: "nav-item nav-link nav-item"},
+            transactions: {style: "nav-item nav-link nav-item"},
+            budgets: {style: "nav-item nav-link nav-item"},
+            savings: {style: "nav-item nav-link nav-item"},
+        }
+    };
+}
 //========== Utility
+App.route = function(url, model) {
+    spa.navigateTo(url, model);
+}
 App.logError = function(error) {
-    console.log(error);
+    console.error(error);
     App.setModel("error", {message: error});
     App.displayErrorModal(error);
 }
@@ -144,9 +180,12 @@ App.promptVersionUpgrade = function() {
 }
 
 //========= authentication
+App.isLoggedIn = function() {
+    return auth.isSignedIn();
+}
 App.logIn = function() {
     try{
-        return auth.signIn();
+        auth.signIn();
     }
     catch(error){
         App.logError(error);
@@ -154,7 +193,7 @@ App.logIn = function() {
     
 }
 App.logOut = function() {
-    return auth.signOut();
+    auth.signOut();
 }
 App.signedIn = async function(user) {
     App.models.user = user;
@@ -166,16 +205,17 @@ App.signedIn = async function(user) {
             selectedId: Storage.getCurrentSpreadsheet()
         };
         await App.updateSheetsList();
-        
+        App.route();
     }
     catch(err)
     {
         App.logError(err);
     }
 }
-App.signedOut = function() {
+App.signedOut = async function() {
     App.models.user = {name: "[LOGGED_OUT]"};
     console.log("signed out");
+    App.route();
 }
 
 //========== Model manipulation
@@ -211,6 +251,7 @@ App.updateSelection = function(spaEvent) {
     const model = spaEvent.model;
     App.storage.spreadsheet = model.spreadsheet;
     App.storage.month = model.month;
+    App.route();
 }
 
 //========= Data
@@ -226,9 +267,3 @@ App.transactions.get = function(month = new Date().getMonth() + 1, year = new Da
         });
     });
 }
-
-console.log("hello");
-    document.querySelectorAll(".modal").forEach(modal => {
-        modal.classList.add("modal-hidden");
-        //modal.hidden = true;
-    });

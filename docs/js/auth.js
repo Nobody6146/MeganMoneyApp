@@ -1,5 +1,6 @@
 function Auth()
 {
+    this.isAuthorized = false;
     try{
         this.googleAuth = null;
         gapi.load('client:auth2', this.start.bind(this));
@@ -14,6 +15,7 @@ function Auth()
 }
 Auth.prototype.start = function() {
     try{
+        this.isAuthorized = false;
         const auth = this;
         // In practice, your app can retrieve one or more discovery documents.
         const discoveryDocs = ['https://sheets.googleapis.com/$discovery/rest?version=v4', 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
@@ -42,8 +44,9 @@ Auth.prototype.receivedAuthStatusUpdate = function() {
     try{
         const user = this.googleAuth.currentUser.get();
         const profile = user.getBasicProfile();
-        const isAuthorized = user.hasGrantedScopes(this.AUTH_SCOPES);
-        if (isAuthorized) {
+        this.isAuthorized = user.hasGrantedScopes(this.AUTH_SCOPES);
+
+        if (this.isAuthorized) {
             let userData = {
                 id: profile.getId(),
                 name: profile.getName(),
@@ -59,6 +62,9 @@ Auth.prototype.receivedAuthStatusUpdate = function() {
     {
         App.logError(error);
     }   
+}
+Auth.prototype.isSignedIn = function() {
+    return this.isAuthorized;
 }
 Auth.prototype.signIn = function() {
     if (this.googleAuth.isSignedIn.get())

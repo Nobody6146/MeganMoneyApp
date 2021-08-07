@@ -9,6 +9,7 @@
         <script src="https://apis.google.com/js/api.js"></script>
         <link rel="stylesheet" href="styles.css">
         <script src="lib/soothe.js"></script>
+        <script src="js/views.js"></script>
         <script src="index.js"></script>
         <script src="js/storage.js"></script>
         <script src="js/spreadsheet.js"></script>
@@ -88,23 +89,13 @@
         <main>
             <div class="main-content">
 
-                <div  class="welcome">
-                    <img class="welcome-logo" src="icon-144x144.png">
-                    <div>
-                        <p>Welcome to MeganMoney</p>
-                        <p>Sign in with Google</p>
-                        <button onclick="App.logIn();">Sign in</button>
-                        <button onclick="App.logOut();">Sign out</button>
-                        <p>Signed in as: <span style="color:blue" spa-model="user" spa-prop="name innerText">[INSERT_NAME]</span></p>
-                        <p>Error message: <span spa-model="error" spa-prop="message innerText"></span></p>
-                    </div>
-                </div>
+                
 
             </div>
         </main>
         <footer>
             <nav class="nav nav-bottom">
-                <a href="#" class="nav-item nav-link nav-item nav-link-active">
+                <a href="#" spa-model="navbar.tabs.dashboard" spa-attr="style class; link href">
                     <i class="material-icons nav-icon">home</i>
                     <span class="nav-title">Dashboard</span>
                 </a>
