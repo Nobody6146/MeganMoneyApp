@@ -15,8 +15,9 @@ SootheApp.prototype.deleteBindAttr = "spa-del";
 SootheApp.prototype.repeatBindAttr = "spa-rpt";
 SootheApp.prototype.conditionBindAttr = "spa-cond";
 SootheApp.prototype.definitiveBindAttr = "spa-def"; //Only allow definitive prop binding "won't respond to generic wildcard events" def="model|prop|true|false", defaults to true
-SootheApp.prototype.submitBindAttr = "spa-submit"; //Prevents default bevaior of events
-SootheApp.prototype.enterBindAttr = "spa-enter"; //Fires a callback when the enter key is pressed on field
+SootheApp.prototype.suppressBindAttr = "spa-sup"; //Prevents default bevaior of an on-event
+SootheApp.prototype.onEventBindAttr = "spa-on"; //Fires a callback when the "on" event of the element is fired
+SootheApp.prototype.triggerEventBindAttr = "spa-trig"; //Triggers a spa dom event 
 
 SootheApp.prototype.wildcardChar = "*";
 SootheApp.prototype.insertionChar = "_";
@@ -41,10 +42,11 @@ SootheApp.prototype.attributes = [
     SootheApp.prototype.deleteBindAttr,
     SootheApp.prototype.repeatBindAttr,
     SootheApp.prototype.conditionBindAttr,
+    SootheApp.prototype.triggerEventBindAttr,
 ];
 
 //Controls the model prop that can be used on a proxy use
-SootheApp.prototype.rawModelDataProp = "_"
+SootheApp.prototype.rawModelDataProp = "__this"
 
 function SootheApp(options) {
     this.routes = [];
@@ -95,36 +97,6 @@ function SootheApp(options) {
                 else if(elType === form)
                     route = target.action;
                 this.navigateTo(route, model);
-                return;
-            }
-            else
-                target = target.parentElement;
-        }
-    }
-    this.submitListener = function(event) {
-        let target = event.target;
-        while(target) {
-            if(target.attributes[SootheApp.prototype.submitBindAttr])
-            {
-                console.log("let's do this");
-                let func = target.attributes[SootheApp.prototype.submitBindAttr].value;
-                event.preventDefault();
-                window[func](event);
-                console.log("we should be done: " + func.toString());
-                return;
-            }
-            else
-                target = target.parentElement;
-        }
-    }
-    this.keyUpListener = function(event) {
-        let target = event.target;
-        while(target) {
-            if(target.attributes[SootheApp.prototype.enterBindAttr] && event.keyCode === 13)
-            {
-                let func = target.attributes[SootheApp.prototype.enterBindAttr].value;
-                event.preventDefault();
-                window[func](event);
                 return;
             }
             else
@@ -260,7 +232,7 @@ function SootheApp(options) {
                     obj[prop] = value;
                     return true;
                 }
-                // console.log("setting: " + prop + ", :" + JSON.stringify(value));
+                
                 //Delete old values for prop so we get unbind events
                 let model = bindOrGet(obj, prop, false);
                 // if(oldValue instanceof Object)
@@ -268,17 +240,17 @@ function SootheApp(options) {
                 obj[prop] = value[SootheApp.prototype.rawModelDataProp] ? value[SootheApp.prototype.rawModelDataProp] : value;
                 bindOrGet(obj, prop, true);
                 // if(model) {
-                //     console.log("Refresh model: " + name + "." + prop + ", " + JSON.stringify(value));
+                
                 //     app.refreshModel(model, name + "." + prop, app);
                 // }
                 let event = new SootheDomEvent(proxy, name, prop, oldValue, oldValue === undefined ? "bind" : "set", app.getRootElement(), undefined);
                 //Make sure the properties exist so we can bind to dom and find them
                 app.triggerEvent(app.getRootElement(), event);
-                // console.log("obj: " + JSON.stringify(obj));
+                
                 return true;
             },
             deleteProperty: function(obj, prop) {
-                // console.log("deleting: " + prop);
+                
                 if (prop in obj) {
                     let property = JSON.parse(JSON.stringify(obj[prop]));
                     let model = models[prop];
@@ -295,7 +267,7 @@ function SootheApp(options) {
                         app.triggerEvent(app.getRootElement(), event);
                     }
                   }
-                //   console.log("obj: " + JSON.stringify(obj));
+                
                   return true;
             }
         });
@@ -372,7 +344,7 @@ function SootheApp(options) {
             let attr = node.attributes[SootheApp.prototype.modelBindAttr];
             if(attr != null)
             {
-                let model = this.getModel(attr.value);
+                let model = this.getModelData(attr.value);
                 
                 if(model instanceof Object) {
                     Object.keys(model).forEach(prop => {
@@ -385,7 +357,7 @@ function SootheApp(options) {
                     if(seperator >= 0)
                     {
                         let propValue = model;
-                        model = app.getModel(attr.value.substr(0, seperator));
+                        model = app.getModelData(attr.value.substr(0, seperator));
                         if(model) {
                             let prop = attr.value.substr(attr.value.lastIndexOf("."), attr.value.length - seperator);
                             let event = new SootheDomEvent(model, attr.value, "*", null, "bind", node, propValue);
@@ -408,16 +380,20 @@ function SootheApp(options) {
         // if(event.type === "pseudo" && pseudoAttr && )
         // let propValue = event.propName ? event.model[event.propName] : event.model;
         //These event types mean a DOM update is required
-        //console.log(event);
         if(attrs.static && attrs.static.value == "true")
         {
             return;
         }
         if(attrs.cond)
         {
-            let values = this.splitAttributeValue(attrs.cond.value);
-            let propValue = event.value !== undefined ? event.value : event.model;
-            if((values[0] === SootheApp.prototype.wildcardChar || event.propName) && !propValue)
+            const value = attrs.cond.value.trim();
+            const firstSpace = attrs.cond.value.indexOf(" ");
+            const eventObjectName = firstSpace === -1 ? "event" : value.substring(0, firstSpace).trim();
+            const rawExpression = firstSpace === -1 ? value : value.substring(firstSpace + 1).trim();
+            const expression = this.resolveInsertionValue(rawExpression, event);
+            const func = new Function(eventObjectName, "return " + expression);
+            const result = func(event);
+            if(result != true)
                 return;
         }
         if(!this.passesDefinitiveCheck(attrs, event))
@@ -506,11 +482,13 @@ function SootheApp(options) {
                 if(isNaN(repeat))
                             repeat = event.model[attrs.rpt.value];
                 for(let i = 0; i < repeat; i++) {
-                    args.forEach(func => {
-                        if(func[0] === event.propName || func[0] === '*')
+                    args.forEach(attr => {
+                        if(attr[0] === event.propName || attr[0] === '*')
                         {
                             try {
-                                window[func[1]](event);
+                                let func = window;
+                                attr[1].split(".").forEach(x => func = func[x]);
+                                func(event);
                             } catch (error) {
                                 console.error(error);
                             }
@@ -531,6 +509,45 @@ function SootheApp(options) {
                 if(del){
                     target.parentNode.removeChild(target);
                     triggered = true;
+                }
+            }
+            if(attrs.trig)  {
+                let args = this.splitAttributeValue(attrs.trig.value);
+                let repeat = attrs.rpt ? parseInt(attrs.rpt.value) : 1;
+                if(isNaN(repeat))
+                    repeat = event.model[attrs.rpt.value];
+                for(let i = 0; i < repeat; i++) {
+                    args.forEach(attr => {
+                        if(attr[0] === event.propName || attr[0] === '*')
+                        {
+                            try {
+                                const propValue = event.value !== undefined ? event.value : event.model;
+                                const eventType = attr[1];
+                                let modelName = attr[2] === undefined ? propValue : this.resolveInsertionValue(attr[2]);
+                                let propName = "*";
+                                const lastDotOperator = modelName.lastIndexOf(".");
+                                if(lastDotOperator !== -1)
+                                {
+                                    propName = modelName.substring(lastDotOperator + 1);
+                                    modelName = modelName.substring(0, lastDotOperator);
+                                }
+                                let model = this.getModelData(modelName);
+
+                                if(model != null){
+                                    if(propName !== "*")
+                                    {
+                                        let domEvent = new SootheDomEvent(model, modelName, propName, model[propName], eventType, this.getRootElement(), undefined);
+                                        this.triggerEvent(this.getRootElement(), domEvent);
+                                    }
+                                    let domEvent = new SootheDomEvent(model, modelName, propName, model, eventType, this.getRootElement(), undefined);
+                                    this.triggerEvent(this.getRootElement(), domEvent);
+                                }
+                            } catch (error) {
+                                console.error(error);
+                            }
+                        }
+                        triggered = true;
+                    });
                 }
             }
         }
@@ -557,6 +574,7 @@ function SootheApp(options) {
             rpt: target.attributes[SootheApp.prototype.repeatBindAttr],
             cond: target.attributes[SootheApp.prototype.conditionBindAttr],
             def: target.attributes[SootheApp.prototype.definitiveBindAttr],
+            trig: target.attributes[SootheApp.prototype.triggerEventBindAttr],
         }
     }
     this.splitAttributeValue = function(value) {
@@ -659,11 +677,57 @@ function SootheApp(options) {
         {childList: true, attributes: true, attributeFilter: SootheApp.prototype.attributes, subtree: true}
     );
     this.root.addEventListener("input", this.inputListener.bind(this));
+    
+    const makeOnEventListener = function(eventName, spa) {
+        const app = spa;
+        const elementEvent = eventName;
+        return function(event) {
+            let target = event.target;
+            if(target.attributes == null)
+                return;
+
+            //Check to prevent default behavior
+            if(target.attributes[SootheApp.prototype.suppressBindAttr] != null)
+            {
+                let paramList = app.splitAttributeValue(target.attributes[SootheApp.prototype.suppressBindAttr].value);
+                for(let i = 0; i < paramList.length; i++)
+                    if(eventName.toLowerCase() == elementEvent.toLowerCase())
+                        event.preventDefault();
+            }
+                
+            if(target.attributes[SootheApp.prototype.onEventBindAttr] == null)
+                return;
+            if(target.attributes[SootheApp.prototype.modelBindAttr] == null)
+                return;
+            
+            let paramList = app.splitAttributeValue(target.attributes[SootheApp.prototype.onEventBindAttr].value);
+            for(let i = 0; i < paramList.length; i++)
+            {
+                const params = paramList[i];
+                let propName = params[0];
+                let eventName = params[1];
+                if(eventName.toLowerCase() != elementEvent.toLowerCase())
+                    continue;
+                let modelName = target.attributes[SootheApp.prototype.modelBindAttr].value;
+                let model = app.getModelData(modelName);
+                if(model == null || model[propName] == null)
+                    continue;
+                let func = model[propName];
+                let domEvent = new SootheDomEvent(model, modelName, propName, func, "onEvent", target, undefined);
+                func(event, domEvent);
+            }
+        }
+    }
+    //Add even listeners for every "on" event
+    for(const key in document.body)
+    {
+        if (key.match(/^on(.*)/)) {
+            this.root.addEventListener(key.substr(2), makeOnEventListener(key, this).bind(this));
+        }
+    }
 
     //Start the router
     this.root.addEventListener("click", this.routeListener.bind(this));
-    this.root.addEventListener("keyup", this.keyUpListener.bind(this));
-    this.root.addEventListener("submit", this.submitListener.bind(this));
     this.root.addEventListener("popstate", this.historyListener.bind(this));
 }
 SootheApp.prototype.getRootElement = function() {
@@ -687,8 +751,13 @@ SootheApp.prototype.getModel = function(name) {
     return model;
 }
 SootheApp.prototype.getModelData = function(name) {
-    let model = this.getModel(name);
-    return model == null ? model : model[SootheApp.prototype.rawModelDataProp];
+    const lastDotOperator = name.lastIndexOf(".");
+    const modelName = lastDotOperator === -1 ? name : name.substring(0, lastDotOperator);
+    let model = this.getModel(modelName);
+    if(model == null)
+        return model;
+    let value = model[SootheApp.prototype.rawModelDataProp];
+    return lastDotOperator === -1 ? value : value[name.substring(lastDotOperator + 1)];
 }
 SootheApp.prototype.bindModel = function(name, data) {
     if(!name)
@@ -697,7 +766,7 @@ SootheApp.prototype.bindModel = function(name, data) {
         data = {};
 
     //If this model already exist, unbind it first
-    if(this.boundModels[name])
+    if(this.boundModels[name] != undefined)
         this.unbindModel(name);
 
     let proxy = this.makeProxy(data, name, this, false);
@@ -710,15 +779,25 @@ SootheApp.prototype.unbindModel = function(name) {
         return null;
 
     let parts = name.split(".");
-    let event = new SootheDomEvent(model, parts[0], "*", JSON.parse(JSON.stringify(model)), "unbind", this.getRootElement(), undefined);
-    //Remove and unbind all of it's children
-    Object.keys(model).forEach(x => delete model[x]);
+    delete this.boundModels[parts[0]];
 
-    //If this is the root model, then remove it
-    if(parts.length == 1) {
-        delete this.boundModels[parts[0]];
-        this.triggerEvent(this.getRootElement(), event);
+    const app = this;
+    //Remove and unbind all of it's children
+    let triggerUnbind;
+    triggerUnbind = function(name, model) {
+        if(model instanceof Object)
+        {
+            Object.keys(model).forEach(key => {
+                triggerUnbind(name + "." + key, model[key]);
+                let event = new SootheDomEvent(undefined, name, key, JSON.parse(JSON.stringify(model)), "unbind", app.getRootElement(), undefined);
+                app.triggerEvent(app.getRootElement(), event);
+            });
+        }
+        
+        let event = new SootheDomEvent(undefined, name, "*", JSON.parse(JSON.stringify(model)), "unbind", app.getRootElement(), undefined);
+        app.triggerEvent(app.getRootElement(), event);
     }
+    triggerUnbind(name, model);
 }
 SootheApp.prototype.unbindAllModels = function() {
     Object.keys(this.boundModels).forEach(x => this.unbindModel(x));
@@ -737,7 +816,7 @@ function SootheDomEvent(model, modelName, propName, oldValue, type, target, valu
     this.target = target; //The element that triggered the event
 
     if(value === undefined) {
-        if(modelName !== SootheApp.prototype.wildcardChar && propName !== SootheApp.prototype.wildcardChar)
+        if(model != null && modelName !== SootheApp.prototype.wildcardChar && propName !== SootheApp.prototype.wildcardChar)
             this.value = propName ? model[propName] : model;
         else
             this.value = null;

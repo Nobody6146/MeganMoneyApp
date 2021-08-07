@@ -10,8 +10,12 @@
         <link rel="stylesheet" href="styles.css">
         <script src="lib/soothe.js"></script>
         <script src="index.js"></script>
+        <script src="js/storage.js"></script>
+        <script src="js/spreadsheet.js"></script>
         <script src="js/app.js"></script>
         <script src="js/auth.js"></script>
+        <script src='js/query.js'></script>
+        <script src="https://www.gstatic.com/charts/loader.js"></script>
         <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script> -->
         <!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@0.4.0/dist/chartjs-plugin-datalabels.min.js"></script>  -->
         <style>
@@ -22,45 +26,79 @@
         <meta name="apple-mobile-web-app-status-bar" content="#0000FF">
     </head>
     <body>
-        <nav class="nav sidebar" onclick="App.showSettings();">
-            <a class="nav-item">
-                Settings
-            </a>
-        </nav>
+        <span class="spa-templates" hidden>
+            <select>
+                <optgroup spa-tmplt="SpreadsheetSelector">
+                    <option spa-model="_" spa-prop="id value;name innerHTML" spa-trig="id bind {{currentSelection.spreadsheet}}"></option>
+                </optgroup>
+            </select>
+        </span>
+
+        <div class="sidebar">
+            <div class="clickoff" onclick="App.showSideMenu(false);"></div>
+            <nav class="nav sidebar-menu">
+                <a class="nav-item-sidebar">
+                    <div>
+                        <span spa-model="user" spa-prop="name innerText"></span>
+                        <img spa-model="user" spa-attr="avatar src">
+                    </div>
+                    
+                </a>
+                <a class="nav-item-sidebar">
+                    Settings
+                </a>
+                <div class="nav-item-sidebar">
+                    <button onclick="App.showSideMenu(false);App.logOut();">Sign out</button>
+                </div>
+            </nav>
+        </div>
+        
         <header>
-            <nav class="nav nav-top">
+            <nav class="nav nav-top-menu">
                 <div class="nav-item nav-logo">
                     <span>MeganMoney</span>
                 </div>
-                <a class="nav-item nav-link-float" onclick="App.showSettings();">
+                <a class="nav-item nav-link-float" onclick="App.showSideMenu();">
                     <i class="material-icons nav-icon">settings</i>
                 </a>
             </nav>
-            <div class="date-picker" onclick="App.showDate();">
-                <div>
-                    Date
-                    <input class="date-picker-input" type="month" soothe-model="app.period" soothe-prop="datePicker value" onchange="datePickerSelectPeriod(this.value)">
+            <div class="selectionMenu" onclick="">
+                <!-- <div class="clickoff" onclick="App.showSideMenu(false);"></div> -->
+                <div class="selection-clickoff" onclick="App.showTopMenu();" ></div>
+                <div spa-model="currentSelection" spa-func="* App.updateSelection" spa-evt="set">
+                    <div>
+                        Date
+                        <input class="date-picker-input" type="month" spa-model="currentSelection" spa-prop="month value" spa-input="month value">
+                    </div>
+                    <div>
+                        Spreadsheet 
+                        <select spa-model="currentSelection" spa-prop="spreadsheet value" spa-input="spreadsheet value">
+                            <option value="" selected disabled hidden>&lt;Pick a Spreadsheet&gt;</option> 
+                            <optgroup label="Spreadsheets" spa-model="spreadsheets" spa-comp="list SpreadsheetSelector">
+                            </optgroup>
+                            <!-- <optgroup disabled hidden spa-model="spreadsheets.list" spa-trig="1 bind {{currentSelection.spreadsheet}}"></span> -->
+                        </select>
+                        <button onclick="App.showTopMenu(false);App.displayCreateNewSpreadsheetModal();">+</button>
+                    </div>
                 </div>
                 
-                <span class="material-icons date-picker-icon">arrow_drop_down</span>
+                <span class="material-icons date-picker-icon" onclick="App.showTopMenu();">arrow_drop_down</span>
             </div>
         </header>
         <main>
-            <div  class="welcome">
-                <img class="welcome-logo" src="icon-144x144.png">
-                <div>
-                    <p>Welcome to MeganMoney</p>
-                    <p>Sign in with Google</p>
-                    <button onclick="App.logIn();">Sign-in</button>
-                    <button onclick="App.logOut();">Sign-out</button>
-                    <p>Signed in as: <span style="color:blue" spa-model="user" spa-prop="name innerText">[INSERT_NAME]</span></p>
-                    <p>Error message: <span spa-model="error" spa-prop="message innerText"></span></p>
-                </div>
-            </div>
-            
             <div class="main-content">
 
-                
+                <div  class="welcome">
+                    <img class="welcome-logo" src="icon-144x144.png">
+                    <div>
+                        <p>Welcome to MeganMoney</p>
+                        <p>Sign in with Google</p>
+                        <button onclick="App.logIn();">Sign in</button>
+                        <button onclick="App.logOut();">Sign out</button>
+                        <p>Signed in as: <span style="color:blue" spa-model="user" spa-prop="name innerText">[INSERT_NAME]</span></p>
+                        <p>Error message: <span spa-model="error" spa-prop="message innerText"></span></p>
+                    </div>
+                </div>
 
             </div>
         </main>
@@ -88,16 +126,64 @@
                 </a>
             </nav>
         </footer>
+        <div id="modals">
+            <div id="waiting-modal" class="modal modal-hidden">
+                <div class="modal-blackout"></div>
+                <div class="modal-container">
+                    <div class="content-center">
+                        <div class="modal-spinner">
+                            <div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="error-modal" class="modal modal-hidden">
+                <div class="modal-blackout"></div>
+                <div class="modal-container">
+                    <div class="modal-header">
+                        <h3>Error</h3>
+                    </div>
+                    <div class="modal-body">
+                        <span>An unknown error has occured</span>
+                        <div class="modal-buttons">
+                            <button onclick="App.dismissModals()">Ok</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="newSpreadsheet-modal" class="modal modal-hidden">
+                <div class="modal-blackout"></div>
+                <div class="modal-container">
+                    <div class="modal-header">
+                        <h3>New Spreadsheet</h3>
+                    </div>
+                    <div class="modal-body">
+                        <input placeholder="Spreadsheet Name" spa-model="newSpreadsheet" spa-prop="name value" spa-input="name value">
+                        <div class="modal-buttons">
+                            <button spa-model="newSpreadsheet" spa-on="createSpreadsheet onClick">Create</button>
+                            <button onclick="App.dismissModals()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <script>
+            function updateSelectElement(spaEvent) {
+                console.log(spa.getModels());
+                const model = spa.getModel(spaEvent.modelName);
+                console.log(model);
+                model[spaEvent.propName] = spaEvent.value;
+                console.log("sync up");
+            } 
             try{
-                window.addEventListener("load", App.start);
-                
+                App.dismissModals();
+                App.start();
             }
             catch(error)
             {
                 App.logError(error);
             }
-            
         </script>
     </body>
 </html>

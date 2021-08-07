@@ -1,0 +1,118 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <script src="lib/soothe.js"></script>
+    </head>
+    <body>
+        <!-- Define our template in a hidden div -->
+        <div id="Components" hidden="">
+            <!-- Name our template for reference -->
+            <div spa-tmplt="FormTemplate">
+                <!-- spa-model="_" Tells the component to use the model passed to it -->
+                <!-- We tell the spa to set the inner html to the model property "label" -->
+                <!-- We will use spa-prop to set the inner html to our label property -->
+                <!-- We will use the spa-attr to set our element style attribute -->
+                <p spa-model="_" spa-prop="label innerHTML" spa-attr="labelStyle style"></p>
+                <p>Validation Errors: 
+                    <span style="color: red;" spa-model="_" spa-prop="errorMessage innerHTML"></span>
+                </p>
+                <!-- We two way bind the values -->
+                <input spa-model="_" spa-prop="firstName value" spa-input="firstName value">
+                <input spa-model="_" spa-prop="lastName value" spa-input="lastName value">
+                <!-- Setup a callback function to handle the click event -->
+                <!-- In this example, we'll reset the form -->
+                <button spa-model="_" spa-prop="buttonLabel innerHTML" spa-on="clickCallback onClick"></button>
+                <!-- spa-tgl lets us toggle an element attribute on or off if the model prop result to true/false -->
+                <!-- We'll use this to control disabling the submit button -->
+                <button spa-model="_" spa-tgl="disableSubmit disabled">Submit</button>
+                <!-- Setup a callback function whenever any model prop changes (*), validate the form -->
+                <span spa-model="_" spa-func="* validateForm" ></span>
+                <p>Hello
+                    <span style="color: blue" spa-model="_" spa-prop="firstName innerHTML"></span>
+                    <span style="color: blue" spa-model="_" spa-prop="lastName innerHTML"></span>
+                    , It's nice to meet you.
+                </p>
+            </div>
+        </div>
+
+        <h2>Soothe - Frontend Framework Demo</h2>
+
+        <hr />
+
+        <!-- Place component by replacing the inner html of our div with the template  -->
+        <!-- The model property "form" is passed in to the component as data which we can reference in our template -->
+        <div spa-model="state" spa-comp="form FormTemplate"></div>
+        
+        <hr />
+
+        <!-- Test our components or seperate by creating a new instance of our component with different data -->
+        <div spa-model="state" spa-comp="form2 FormTemplate"></div>
+
+        <script>
+            //Create our app with default options
+            const spa =  new SootheApp();
+            
+            //Bind our first model called "state" and set it to an empty object
+            // Model data or DOM elements can be bound at any time when either changes
+            let model = spa.bindModel("state", {});
+            model.form = {
+                label: "Enter your name",
+                labelStyle: "",
+                firstName: "Bradley",
+                lastName: "Biera",
+                buttonLabel: "Reset",
+                errorMessage: "",
+                disableSubmit: false,
+                clickCallback: function(domEvent, spaEvent) {
+                    //We retrieve the actual model to modify the data and not just the copy
+                    let model = spa.getModel(spaEvent.modelName);
+                    model.firstName = "";
+                    model.lastName = "";
+                    console.log("cleared");
+                }
+            }
+
+            //Lets bind a second set of component data
+            model.form2 = {
+                label: "Who are you?",
+                labelStyle: "font-size: 30pt;font-weight: bold;",
+                firstName: "Jackson",
+                lastName: "Bailey",
+                buttonLabel: "lowercase",
+                errorMessage: "",
+                disableSubmit: false,
+                clickCallback: function(domEvent, spaEvent) {
+                    //We retrieve the actual model to modify the data and not just the copy contained in spaEvent.model
+                    let model = spa.getModel(spaEvent.modelName);
+                    model.firstName = model.firstName.toLowerCase();
+                    model.lastName = model.lastName.toLowerCase();
+                    console.log("change case");
+                }
+            }
+
+            //Define a callback function to handle form validation
+            //Even though we have 2 seperate components, we only need one validation function
+            //  because we pass in the component state
+            var validateForm = function(spaEvent) {
+                let model = spa.getModel(spaEvent.modelName);
+                let errorMessage = "";
+                if(spaEvent.model.firstName == null || spaEvent.model.firstName.length == 0)
+                    errorMessage = "Please input a first name,";
+                if(spaEvent.model.lastName == null || spaEvent.model.lastName.length == 0)
+                    errorMessage += "Please input a last name,";
+                
+                //I check before setting the model, otherwise we'll get stuck in an infinite loop
+                // because we are responding to all model changes
+                // Could fix this by calling validation on only certain props such as
+                //  ex: spa-func="firstName validateForm; lastName validateForm"
+                if(model.errorMessage != errorMessage)
+                    model.errorMessage = errorMessage;
+                const disableSubmit = errorMessage != "";
+                if(model.disableSubmit != disableSubmit)
+                    model.disableSubmit = disableSubmit;
+                console.log("validated");
+            };
+        </script>
+    </body>
+</html>
