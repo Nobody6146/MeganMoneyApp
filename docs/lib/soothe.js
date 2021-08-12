@@ -18,6 +18,7 @@ SootheApp.prototype.definitiveBindAttr = "spa-def"; //Only allow definitive prop
 SootheApp.prototype.suppressBindAttr = "spa-sup"; //Prevents default bevaior of an on-event
 SootheApp.prototype.onEventBindAttr = "spa-on"; //Fires a callback when the "on" event of the element is fired
 SootheApp.prototype.triggerEventBindAttr = "spa-trig"; //Triggers a spa dom event 
+SootheApp.prototype.toggleClassBindAttr = "spa-class"; //Toggles the inclusion of a class to an element 
 
 SootheApp.prototype.wildcardChar = "*";
 SootheApp.prototype.insertionChar = "_";
@@ -43,6 +44,7 @@ SootheApp.prototype.attributes = [
     SootheApp.prototype.repeatBindAttr,
     SootheApp.prototype.conditionBindAttr,
     SootheApp.prototype.triggerEventBindAttr,
+    SootheApp.prototype.toggleClassBindAttr
 ];
 
 //Controls the model prop that can be used on a proxy use
@@ -550,6 +552,19 @@ function SootheApp(options) {
                     });
                 }
             }
+            if(attrs.class)
+            {
+                let values = this.splitAttributeValue(attrs.class.value).filter(x => x[0] === event.propName || x[0] === '*');
+                values.forEach(attr => {
+                    let propValue = attr[2] ? this.resolveInsertionValue(attr[2], event) : event.value !== undefined ? event.value : event.model;
+                    const className = attr[1];
+                    if(!target.classList.contains(className) == propValue)
+                    {
+                        target.classList.toggle(className, propValue);
+                    }
+                    triggered = true;
+                });
+            }
         }
 
         if(triggered && attrs.static) 
@@ -575,6 +590,7 @@ function SootheApp(options) {
             cond: target.attributes[SootheApp.prototype.conditionBindAttr],
             def: target.attributes[SootheApp.prototype.definitiveBindAttr],
             trig: target.attributes[SootheApp.prototype.triggerEventBindAttr],
+            class: target.attributes[SootheApp.prototype.toggleClassBindAttr],
         }
     }
     this.splitAttributeValue = function(value) {

@@ -19,13 +19,11 @@ MeganMoneyView.prototype.getRoute = function() {
 MeganMoneyView.prototype.startRendering = function() {
     App.displayWaitingModal();
     
+    const tabName = this.name.toLowerCase();
     //Update selected tab
     Object.keys(App.models.navbar.tabs).forEach(x => {
-        App.models.navbar.tabs[x].style = "nav-item nav-link nav-item";
+        App.models.navbar.tabs[x].selected = x === tabName;
     });
-    const currentTab = App.models.navbar.tabs[this.name.toLowerCase()];
-    if(currentTab != null)
-        currentTab.style += " nav-link-active";
 }
 MeganMoneyView.prototype.finishRendering = function(error) {
     if(!error) {

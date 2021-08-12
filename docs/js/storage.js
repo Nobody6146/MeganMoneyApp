@@ -24,3 +24,48 @@ Storage.getCurrentAccountingMonth = function() {
 Storage.setCurrentAccountingMonth = function(mmyy) {
     return localStorage.setItem(Storage.keys.CURRENT_AccountingMonth, mmyy);
 }
+//
+Storage.data = {
+    info: null,
+    settings: null,
+    labels: null,
+};
+Storage.clearCache = function() {
+    Storage.data = {
+        info: null,
+        settings: null,
+        labels: null,
+    };
+}
+Storage.getInfo = function(){
+    return new Promise( (resolve, reject) => {
+        if(Storage.data.info != null)
+            resolve(Storage.data.info);
+        Query.info.get()
+        .then(res => {
+            Storage.data.info = res;
+            resolve(res);
+        })
+        .catch(err => reject(err));
+    });
+}
+Storage.updateInfo = function(info) {
+    Storage.data.info = info;
+    return Query.info.update(info);
+}
+Storage.getSettings = function(){
+    return new Promise( (resolve, reject) => {
+        if(Storage.data.settings != null)
+            resolve(Storage.data.settings);
+        Query.settings.get()
+        .then(res => {
+            Storage.data.settings = res;
+            resolve(res);
+        })
+        .catch(err => reject(err));
+    });
+}
+Storage.updateSettings = function(settings) {
+    Storage.data.settings = settings;
+    return Query.settings.update(settings);
+}

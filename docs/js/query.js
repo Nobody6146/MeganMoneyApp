@@ -5,6 +5,7 @@ Query.get = function(range, valueRenderOption = "UNFORMATTED_VALUE", spreadsheet
     return new Promise( (resolve, reject) => {
         gapi.client.sheets.spreadsheets.values.get({spreadsheetId, range: range, valueRenderOption})
         .then(res => {
+            console.log(res);
             const raw = JSON.parse(res.body).values;
             let list = [];
             for(let i = 1; i < raw.length; i++)
@@ -26,7 +27,7 @@ Query.update = function(range, values, valueInputOption = "USER_ENTERED", spread
     const valueRange = {
         range: range,
         majorDimension: "ROWS",
-        values: [values]
+        values: values
     }
     return new Promise( (resolve, reject) => {
         gapi.client.sheets.spreadsheets.values.update({spreadsheetId, range: range, valueInputOption}, valueRange)
@@ -42,10 +43,10 @@ Query.insert = function(range, values, valueInputOption = "USER_ENTERED", insert
     const valueRange = {
         range: range,
         majorDimension: "ROWS",
-        values: [values]
+        values: values
     };
     return new Promise( (resolve, reject) => {
-        gapi.client.sheets.spreadsheets.values.append({spreadsheetId, range: range, valueInputOption}, valueRange)
+        gapi.client.sheets.spreadsheets.values.append({spreadsheetId, range: range, valueInputOption, insertDataOption}, valueRange)
         .then(res => {
             resolve(res.result);
         })
@@ -54,14 +55,21 @@ Query.insert = function(range, values, valueInputOption = "USER_ENTERED", insert
         });
     });
 }
-Query.info = function() {
-    return Query.get("info");
+Query.info = {
+    get: function() {
+        return Query.get("info");
+    },
+    update: function(array, row = "A2") {
+        return Query.update("info!" + row, array.map(x => Object.values(x)));
+    }
 }
-Query.settings = function() {
-    return Query.get("settings");
-}
-Query.enums = function() {
-    return Query.get("enums");
+Query.settings = {
+    get: function() {
+        return Query.get("settings");
+    },
+    update: function(array) {
+        return Query.update("settings!A2", array.map(x => Object.values(x)));
+    }
 }
 Query.labels = function() {
     return Query.get("labels");

@@ -9,7 +9,6 @@ Spreadsheet.listSheets = async function() {
 }
 
 Spreadsheet.create = function(name) {
-
     const sheets = [
         {
             name: "Info",
@@ -155,9 +154,32 @@ Spreadsheet.create = function(name) {
     // };
 
     return new Promise( (resolve, reject) => {
+        let result = null;
+
         gapi.client.sheets.spreadsheets.create({}, spreadsheet)
         .then(res => {
-            resolve(res.result);
+            result = res.result;
+            return App.updateSheetsList();
+        })
+        .then( () => {
+            App.models.currentSelection.spreadsheet = result.spreadsheetId;
+            Storage.clearCache();
+        })
+        .then(() => {
+            const date = new Date().toISOString();
+            return Storage.updateInfo([
+                {id: 1, createDate: date, updateDate: date, isActive: true, name: "version", value: 1.0}
+            ]);
+        })
+        .then(() => {
+            const date = new Date().toISOString();
+            return Storage.updateSettings([
+                {id: 1, createDate: date, updateDate: date, isActive: true, name: "positiveAmount", value: 1},
+                {id: 2, createDate: date, updateDate: date, isActive: true, name: "goodTransaction", value: 1}
+            ]);
+        })
+        .then(() => {
+            resolve(result);
         })
         .catch(err => {
             reject(err);

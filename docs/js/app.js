@@ -46,8 +46,6 @@ function App() {
         Spreadsheet.create(name)
         .then(res => {
             App.dismissModals();
-            App.models.currentSelection.spreadsheet = res.spreadsheetId;
-            return App.updateSheetsList();
         })
         .then(res => {
             App.showTopMenu(true);
@@ -124,11 +122,11 @@ App.loadPages = function() {
 
     App.models.navbar = {
         tabs: {
-            dashboard: {style: "nav-item nav-link nav-item", link: dashboardView.getRoute()},
-            labels: {style: "nav-item nav-link nav-item"},
-            transactions: {style: "nav-item nav-link nav-item"},
-            budgets: {style: "nav-item nav-link nav-item"},
-            savings: {style: "nav-item nav-link nav-item"},
+            dashboard: {selected: false, link: dashboardView.getRoute()},
+            labels: {selected: false},
+            transactions: {selected: false},
+            budgets: {selected: false},
+            savings: {selected: false},
         }
     };
 }
