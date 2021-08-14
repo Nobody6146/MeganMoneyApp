@@ -39,7 +39,7 @@ function App() {
     addModelProp("spreadsheets");
     addModelProp("currentSelection");
     addModelProp("newSpreadsheet");
-    addModelProp("navbar");
+    addModelProp("page");
     App.models.newSpreadsheet.createSpreadsheet = function(domEvent, spaEvent) {
         const name = spaEvent.model.name;
         App.displayWaitingModal();
@@ -105,9 +105,12 @@ App.loadPages = function() {
     //Create views
     let dashboardView = new DashboardView();
     let loginView = new LoginView();
+    let labelsView = new LabelsView();
+    let labelsEditView = new LabelsEditView();
 
     //Bind routes
     spa.addRoute(".*", (req, res, next) => {
+        App.models.page.loading = true;
         //Auth check middleware
         if(App.isLoggedIn())
         {
@@ -116,18 +119,21 @@ App.loadPages = function() {
         loginView.render.bind(loginView)(req, res, next);
     });
     spa.addRoute(dashboardView.getRoute(), dashboardView.render.bind(dashboardView));
+    spa.addRoute(labelsView.getRoute(), labelsView.render.bind(labelsView));
+    spa.addRoute(labelsEditView.getRoute(), labelsEditView.render.bind(labelsEditView));
     spa.addRoute(".*", (req, res, next) => {
-        res.app.navigateTo(dashboardView.getRoute());
+        res.spa.navigateTo(dashboardView.getRoute());
     });
 
-    App.models.navbar = {
+    App.models.page = {
         tabs: {
             dashboard: {selected: false, link: dashboardView.getRoute()},
-            labels: {selected: false},
+            labels: {selected: false, link: labelsView.getRoute()},
             transactions: {selected: false},
             budgets: {selected: false},
             savings: {selected: false},
-        }
+        },
+        loading: false
     };
 }
 //========== Utility
@@ -212,6 +218,7 @@ App.signedIn = async function(user) {
 }
 App.signedOut = async function() {
     App.models.user = {name: "[LOGGED_OUT]"};
+    App.models.spreadsheets = {};
     console.log("signed out");
     App.route();
 }

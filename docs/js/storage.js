@@ -40,32 +40,51 @@ Storage.clearCache = function() {
 Storage.getInfo = function(){
     return new Promise( (resolve, reject) => {
         if(Storage.data.info != null)
-            resolve(Storage.data.info);
+            resolve(Util.copyObj(Storage.data.info));
         Query.info.get()
         .then(res => {
             Storage.data.info = res;
-            resolve(res);
+            resolve(Util.copyObj(res));
         })
         .catch(err => reject(err));
     });
 }
 Storage.updateInfo = function(info) {
     Storage.data.info = info;
-    return Query.info.update(info);
+    return Query.info.update(info)
+    .then(res => Util.copyObj(res));
 }
 Storage.getSettings = function(){
     return new Promise( (resolve, reject) => {
         if(Storage.data.settings != null)
-            resolve(Storage.data.settings);
+            resolve(Util.copyObj(Storage.data.settings));
         Query.settings.get()
         .then(res => {
             Storage.data.settings = res;
-            resolve(res);
+            resolve(Util.copyObj(res));
         })
         .catch(err => reject(err));
     });
 }
 Storage.updateSettings = function(settings) {
     Storage.data.settings = settings;
-    return Query.settings.update(settings);
+    return Query.settings.update(settings)
+    .then(res => Util.copyObj(res));
+}
+Storage.getLabels = function(){
+    return new Promise( (resolve, reject) => {
+        if(Storage.data.labels != null)
+            resolve(Util.copyObj(Storage.data.labels));
+        Query.labels.get()
+        .then(res => {
+            Storage.data.labels = res;
+            resolve(Util.copyObj(res));
+        })
+        .catch(err => reject(err));
+    });
+}
+Storage.updateLabels = function(labels) {
+    Storage.data.labels = labels;
+    return Query.labels.update(labels)
+    .then(res => Util.copyObj(res));
 }

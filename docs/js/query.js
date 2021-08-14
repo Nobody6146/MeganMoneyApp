@@ -71,14 +71,16 @@ Query.settings = {
         return Query.update("settings!A2", array.map(x => Object.values(x)));
     }
 }
-Query.labels = function() {
+Query.labels = {
+    get: function() {
     return Query.get("labels");
+    },
+    update: function(array) {
+        return Query.update("labels!A2", array.map(x => Object.values(x)));
+    }
 }
 Query.importSettings = function() {
     return Query.get("importSettings");
-}
-Query.labels = function() {
-    return Query.get("labels");
 }
 Query.transactions = function() {
     return Query.get("transactions");

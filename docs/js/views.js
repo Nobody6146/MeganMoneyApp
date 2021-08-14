@@ -10,8 +10,7 @@ MeganMoneyView.prototype.getRoot = function() {
     return document.querySelector(".main-content");
 }
 MeganMoneyView.prototype.processData = function(data) {
-    let app = App.getApp();
-    var model = app.bindModel(this.name, data);
+    App.models.page.data = data;
 }
 MeganMoneyView.prototype.getRoute = function() {
     return "#";
@@ -21,16 +20,18 @@ MeganMoneyView.prototype.startRendering = function() {
     
     const tabName = this.name.toLowerCase();
     //Update selected tab
-    Object.keys(App.models.navbar.tabs).forEach(x => {
-        App.models.navbar.tabs[x].selected = x === tabName;
+    Object.keys(App.models.page.tabs).forEach(x => {
+        App.models.page.tabs[x].selected = x === tabName;
     });
 }
 MeganMoneyView.prototype.finishRendering = function(error) {
     if(!error) {
         App.dismissModals();
+        App.models.page.loading = false;
     }
     else {
         App.displayErrorModal(error.message);
+        App.models.page.loaded = false;
         console.error(error);
     }
 }
@@ -60,4 +61,50 @@ DashboardView.prototype.getRoute = function() {
 }
 DashboardView.prototype.getHTML = function() {
    return fetch("views/dashboard/index.html");
+}
+
+//============ Labels ============//
+function LabelsView() {
+    MeganMoneyView.call(this,"Labels");
+}
+LabelsView.prototype = Object.create(MeganMoneyView.prototype);
+LabelsView.prototype.getRoute = function() {
+    return "#labels";
+}
+LabelsView.prototype.getHTML = function() {
+   return fetch("views/labels/index.html");
+}
+LabelsView.prototype.getData = function(req, res) {
+    return Storage.getLabels()
+    .then(res => {
+        res.forEach(x => {
+            const route = LabelsEditView.prototype.getRoute(x.id);
+            x.edit = function() {
+                console.log(route);
+                window.location = route;
+            };
+        });
+        return {
+            labels: res
+        };
+    });
+}
+
+function LabelsEditView() {
+    MeganMoneyView.call(this,"Labels");
+}
+LabelsEditView.prototype = Object.create(MeganMoneyView.prototype);
+LabelsEditView.prototype.getRoute = function(id) {
+    return LabelsView.prototype.getRoute() + "edit/" + (id === undefined ? ":id" : id);
+}
+LabelsEditView.prototype.getHTML = function() {
+   return fetch("views/labels/edit.html");
+}
+LabelsEditView.prototype.getData = function(req) {
+    return Storage.getLabels()
+    .then(res => {
+        return {
+            label:  res.filter(x => x.id == req.params.id)[0]
+        };
+    });
 }

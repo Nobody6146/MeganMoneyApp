@@ -65,10 +65,9 @@
                 errorMessage: "",
                 disableSubmit: false,
                 clickCallback: function(domEvent, spaEvent) {
-                    //We retrieve the actual model to modify the data and not just the copy
-                    let model = spa.getModel(spaEvent.modelName);
-                    model.firstName = "";
-                    model.lastName = "";
+                    //We retrieve the actual model to modify the data and not just the copy of the raw data contained in spaEvent.data
+                    spaEvent.model.firstName = "";
+                    spaEvent.model.lastName = "";
                     console.log("cleared");
                 }
             }
@@ -83,10 +82,9 @@
                 errorMessage: "",
                 disableSubmit: false,
                 clickCallback: function(domEvent, spaEvent) {
-                    //We retrieve the actual model to modify the data and not just the copy contained in spaEvent.model
-                    let model = spa.getModel(spaEvent.modelName);
-                    model.firstName = model.firstName.toLowerCase();
-                    model.lastName = model.lastName.toLowerCase();
+                    //We retrieve the actual model to modify the data and not just the copy of the raw data contained in spaEvent.data
+                    spaEvent.model.firstName = spaEvent.model.firstName.toLowerCase();
+                    spaEvent.model.lastName = spaEvent.model.lastName.toLowerCase();
                     console.log("change case");
                 }
             }
@@ -95,7 +93,6 @@
             //Even though we have 2 seperate components, we only need one validation function
             //  because we pass in the component state
             var validateForm = function(spaEvent) {
-                let model = spa.getModel(spaEvent.modelName);
                 let errorMessage = "";
                 if(spaEvent.model.firstName == null || spaEvent.model.firstName.length == 0)
                     errorMessage = "Please input a first name,";
@@ -106,11 +103,11 @@
                 // because we are responding to all model changes
                 // Could fix this by calling validation on only certain props such as
                 //  ex: spa-func="firstName validateForm; lastName validateForm"
-                if(model.errorMessage != errorMessage)
-                    model.errorMessage = errorMessage;
+                if(spaEvent.model.errorMessage != errorMessage)
+                    spaEvent.model.errorMessage = errorMessage;
                 const disableSubmit = errorMessage != "";
-                if(model.disableSubmit != disableSubmit)
-                    model.disableSubmit = disableSubmit;
+                if(spaEvent.model.disableSubmit != disableSubmit)
+                    spaEvent.model.disableSubmit = disableSubmit;
                 console.log("validated");
             };
         </script>

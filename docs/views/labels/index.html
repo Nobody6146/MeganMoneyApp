@@ -1,0 +1,32 @@
+<div hidden>
+    <table>
+        <tbody spa-tmplt="LabelListTemplate">
+            <tr spa-model="_" spa-on="edit onClick">
+                <td spa-model="_" spa-prop="name innerHTML">Label Name</td>
+                <td>
+                    <div class="labels-display" spa-model="_" spa-prop="color style {{background-color:{{value}}}}"></div>
+                </td>
+                <td>
+                    <div style="display: flex; justify-content: space-around;">
+                        <div>
+                            PC <input spa-model="_" spa-prop="primaryCategory checked" type="checkbox" disabled/>
+                        </div>
+                        <div>
+                            SC <input spa-model="_" spa-prop="secondaryCategory checked" type="checkbox" disabled/>
+                        </div>
+                        <div>
+                            PM <input spa-model="_" spa-prop="paymentMethod checked" type="checkbox" disabled/>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    
+</div>
+
+<table style="width: 100%;">
+    <thead></thead>
+    <tbody spa-model="page.data" spa-comp="labels LabelListTemplate">
+    </tbody>
+</table>
