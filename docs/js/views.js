@@ -80,7 +80,6 @@ LabelsView.prototype.getData = function(req, res) {
         res.forEach(x => {
             const route = LabelsEditView.prototype.getRoute(x.id);
             x.edit = function() {
-                console.log(route);
                 window.location = route;
             };
         });

@@ -94,7 +94,7 @@ App.start = function() {
         }
 
         App.loadPages();
-        App.displayWaitingModal();
+        //App.displayWaitingModal();
     }
     catch(err) {
         App.logError(error);
@@ -185,7 +185,7 @@ App.promptVersionUpgrade = function() {
 
 //========= authentication
 App.isLoggedIn = function() {
-    return auth.isSignedIn();
+    return true;//auth.isSignedIn();
 }
 App.logIn = function() {
     try{

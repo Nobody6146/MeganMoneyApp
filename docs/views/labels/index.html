@@ -1,21 +1,26 @@
 <div hidden>
     <table>
-        <tbody spa-tmplt="LabelListTemplate">
-            <tr spa-model="_" spa-on="edit onClick">
-                <td spa-model="_" spa-prop="name innerHTML">Label Name</td>
+        <tbody spa-template="LabelListTemplate">
+            <tr spa-model="_" spa-handler="edit onclick; edit ontouchend;">
                 <td>
-                    <div class="labels-display" spa-model="_" spa-prop="color style {{background-color:{{value}}}}"></div>
+                    <span spa-model="_" spa-property="name innerHTML"></span>
                 </td>
-                <td>
+                <td spa-model="_" >
+                    <div>
+                        <div class="labels-display" spa-model="_" spa-property="color style {{background-color:{{value}}}}"></div>
+                    </div>
+                    
+                </td>
+                <td spa-model="_" >
                     <div style="display: flex; justify-content: space-around;">
                         <div>
-                            PC <input spa-model="_" spa-prop="primaryCategory checked" type="checkbox" disabled/>
+                            PC <input spa-model="_" spa-property="primaryCategory checked" type="checkbox" disabled/>
                         </div>
                         <div>
-                            SC <input spa-model="_" spa-prop="secondaryCategory checked" type="checkbox" disabled/>
+                            SC <input spa-model="_" spa-property="secondaryCategory checked" type="checkbox" disabled/>
                         </div>
                         <div>
-                            PM <input spa-model="_" spa-prop="paymentMethod checked" type="checkbox" disabled/>
+                            PM <input spa-model="_" spa-property="paymentMethod checked" type="checkbox" disabled/>
                         </div>
                     </div>
                 </td>
@@ -27,6 +32,6 @@
 
 <table style="width: 100%;">
     <thead></thead>
-    <tbody spa-model="page.data" spa-comp="labels LabelListTemplate">
+    <tbody spa-model="page.data" spa-list="labels LabelListTemplate">
     </tbody>
 </table>

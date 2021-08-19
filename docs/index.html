@@ -31,8 +31,8 @@
     <body>
         <span class="spa-templates" hidden>
             <select>
-                <optgroup spa-tmplt="SpreadsheetSelector">
-                    <option spa-model="_" spa-prop="id value;name innerHTML" spa-trig="id bind {{currentSelection.spreadsheet}}"></option>
+                <optgroup spa-template="SpreadsheetSelector">
+                    <option spa-model="_" spa-property="id value;name innerHTML" spa-trigger="id bind {{currentSelection.spreadsheet}}"></option>
                 </optgroup>
             </select>
         </span>
@@ -42,8 +42,8 @@
             <nav class="nav sidebar-menu">
                 <a class="nav-item-sidebar">
                     <div>
-                        <span spa-model="user" spa-prop="name innerText"></span>
-                        <img spa-model="user" spa-attr="avatar src">
+                        <span spa-model="user" spa-property="name innerText"></span>
+                        <img spa-model="user" spa-attribute="avatar src">
                     </div>
                     
                 </a>
@@ -66,20 +66,19 @@
                 </a>
             </nav>
             <div class="selectionMenu" onclick="">
-                <!-- <div class="clickoff" onclick="App.showSideMenu(false);"></div> -->
                 <div class="selection-clickoff" onclick="App.showTopMenu();" ></div>
-                <div spa-model="currentSelection" spa-func="* App.updateSelection" spa-evt="set">
+                <div spa-model="currentSelection" spa-function="* App.updateSelection" spa-event="set">
                     <div>
                         Date
-                        <input class="date-picker-input" type="month" spa-model="currentSelection" spa-prop="month value" spa-input="month value">
+                        <input class="date-picker-input" type="month" spa-model="currentSelection" spa-property="month value" spa-input="month value">
                     </div>
                     <div>
                         Spreadsheet 
-                        <select spa-model="currentSelection" spa-prop="spreadsheet value" spa-input="spreadsheet value">
+                        <select spa-model="currentSelection" spa-property="spreadsheet value" spa-input="spreadsheet value">
                             <option value="" selected disabled hidden>&lt;Pick a Spreadsheet&gt;</option> 
-                            <optgroup label="Spreadsheets" spa-model="spreadsheets" spa-comp="list SpreadsheetSelector">
+                            <optgroup label="Spreadsheets" spa-model="spreadsheets" spa-list="list SpreadsheetSelector">
                             </optgroup>
-                            <!-- <optgroup disabled hidden spa-model="spreadsheets.list" spa-trig="1 bind {{currentSelection.spreadsheet}}"></span> -->
+                           
                         </select>
                         <button onclick="App.showTopMenu(false);App.displayCreateNewSpreadsheetModal();">+</button>
                     </div>
@@ -94,23 +93,23 @@
         </main>
         <footer>
             <nav class="nav nav-bottom">
-                <a href="#" class="nav-item nav-link nav-item" spa-model="page.tabs.dashboard" spa-class="selected nav-link-active" spa-attr="link href">
+                <a href="#" class="nav-item nav-link nav-item" spa-model="page.tabs.dashboard" spa-class="selected nav-link-active" spa-attribute="link href">
                     <i class="material-icons nav-icon">home</i>
                     <span class="nav-title">Dashboard</span>
                 </a>
-                <a href="#" class="nav-item nav-link" spa-model="page.tabs.labels" spa-class="selected nav-link-active" spa-attr="link href">
+                <a href="#" class="nav-item nav-link" spa-model="page.tabs.labels" spa-class="selected nav-link-active" spa-attribute="link href">
                     <i class="material-icons nav-icon">label</i>
                     <span class="nav-title">Labels</span>
                 </a>
-                <a href="#" class="nav-item nav-link" spa-model="page.tabs.transactions" spa-class="selected nav-link-active" spa-attr="link href">
+                <a href="#" class="nav-item nav-link" spa-model="page.tabs.transactions" spa-class="selected nav-link-active" spa-attribute="link href">
                     <i class="material-icons nav-icon">sell</i>
                     <span class="nav-title">Transactions</span>
                 </a>
-                <a href="#" class="nav-item nav-link" spa-model="page.tabs.budgets" spa-class="selected nav-link-active" spa-attr="link href">
+                <a href="#" class="nav-item nav-link" spa-model="page.tabs.budgets" spa-class="selected nav-link-active" spa-attribute="link href">
                     <i class="material-icons nav-icon">credit_score</i>
                     <span class="nav-title">Budgets</span>
                 </a>
-                <a href="#" class="nav-item nav-link" spa-model="page.tabs.savings" spa-class="selected nav-link-active" spa-attr="link href">
+                <a href="#" class="nav-item nav-link" spa-model="page.tabs.savings" spa-class="selected nav-link-active" spa-attribute="link href">
                     <i class="material-icons nav-icon">savings</i>
                     <span class="nav-title">Savings</span>
                 </a>
@@ -149,11 +148,11 @@
                         <h3>New Spreadsheet</h3>
                     </div>
                     <div class="modal-body">
-                        <input placeholder="Spreadsheet Name" spa-model="newSpreadsheet" spa-prop="name value" spa-input="name value">
+                        <input placeholder="Spreadsheet Name" spa-model="newSpreadsheet" spa-property="name value" spa-input="name value">
                     </div>
                     <div class="modal-footer">
                         <button class="modal-button" onclick="App.dismissModals()">Cancel</button>
-                        <button class="modal-button" spa-model="newSpreadsheet" spa-on="createSpreadsheet onClick">Create</button>
+                        <button class="modal-button" spa-model="newSpreadsheet" spa-handler="createSpreadsheet onClick">Create</button>
                     </div>
                 </div>
             </div>

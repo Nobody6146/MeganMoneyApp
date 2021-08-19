@@ -8,29 +8,29 @@
         <!-- Define our template in a hidden div -->
         <div id="Components" hidden="">
             <!-- Name our template for reference -->
-            <div spa-tmplt="FormTemplate">
+            <div spa-template="FormTemplate">
                 <!-- spa-model="_" Tells the component to use the model passed to it -->
                 <!-- We tell the spa to set the inner html to the model property "label" -->
-                <!-- We will use spa-prop to set the inner html to our label property -->
-                <!-- We will use the spa-attr to set our element style attribute -->
-                <p spa-model="_" spa-prop="label innerHTML" spa-attr="labelStyle style"></p>
+                <!-- We will use spa-property to set the inner html to our label property -->
+                <!-- We will use the spa-attribute to set our element style attribute -->
+                <p spa-model="_" spa-property="label innerHTML" spa-attribute="labelStyle style"></p>
                 <p>Validation Errors: 
-                    <span style="color: red;" spa-model="_" spa-prop="errorMessage innerHTML"></span>
+                    <span style="color: red;" spa-model="_" spa-property="errorMessage innerHTML"></span>
                 </p>
                 <!-- We two way bind the values -->
-                <input spa-model="_" spa-prop="firstName value" spa-input="firstName value">
-                <input spa-model="_" spa-prop="lastName value" spa-input="lastName value">
+                <input spa-model="_" spa-property="firstName value" spa-input="firstName value">
+                <input spa-model="_" spa-property="lastName value" spa-input="lastName value">
                 <!-- Setup a callback function to handle the click event -->
                 <!-- In this example, we'll reset the form -->
-                <button spa-model="_" spa-prop="buttonLabel innerHTML" spa-on="clickCallback onClick"></button>
-                <!-- spa-tgl lets us toggle an element attribute on or off if the model prop result to true/false -->
+                <button onclick="" spa-model="_" spa-property="buttonLabel innerHTML" spa-handler="clickCallback onclick"></button>
+                <!-- spa-toggle lets us toggle an element attribute on or off if the model prop result to true/false -->
                 <!-- We'll use this to control disabling the submit button -->
-                <button spa-model="_" spa-tgl="disableSubmit disabled">Submit</button>
+                <button spa-model="_" spa-toggle="disableSubmit disabled">Submit</button>
                 <!-- Setup a callback function whenever any model prop changes (*), validate the form -->
-                <span spa-model="_" spa-func="* validateForm" ></span>
+                <span spa-model="_" spa-function="* validateForm" ></span>
                 <p>Hello
-                    <span style="color: blue" spa-model="_" spa-prop="firstName innerHTML"></span>
-                    <span style="color: blue" spa-model="_" spa-prop="lastName innerHTML"></span>
+                    <span style="color: blue" spa-model="_" spa-property="firstName innerHTML"></span>
+                    <span style="color: blue" spa-model="_" spa-property="lastName innerHTML"></span>
                     , It's nice to meet you.
                 </p>
             </div>
@@ -42,12 +42,12 @@
 
         <!-- Place component by replacing the inner html of our div with the template  -->
         <!-- The model property "form" is passed in to the component as data which we can reference in our template -->
-        <div spa-model="state" spa-comp="form FormTemplate"></div>
+        <div spa-model="state" spa-component="form FormTemplate"></div>
         
         <hr />
 
         <!-- Test our components or seperate by creating a new instance of our component with different data -->
-        <div spa-model="state" spa-comp="form2 FormTemplate"></div>
+        <div spa-model="state" spa-component="form2 FormTemplate"></div>
 
         <script>
             //Create our app with default options
@@ -102,7 +102,7 @@
                 //I check before setting the model, otherwise we'll get stuck in an infinite loop
                 // because we are responding to all model changes
                 // Could fix this by calling validation on only certain props such as
-                //  ex: spa-func="firstName validateForm; lastName validateForm"
+                //  ex: spa-function="firstName validateForm; lastName validateForm"
                 if(spaEvent.model.errorMessage != errorMessage)
                     spaEvent.model.errorMessage = errorMessage;
                 const disableSubmit = errorMessage != "";

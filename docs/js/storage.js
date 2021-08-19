@@ -72,6 +72,11 @@ Storage.updateSettings = function(settings) {
     .then(res => Util.copyObj(res));
 }
 Storage.getLabels = function(){
+    const date = new Date().toISOString();
+    // return Promise.resolve([
+    //     {id: 1, createDate: date, updateDate: date, isActive: true, name: "None", color: "#FF0000", paymentMethod: true, primaryCategory: true, secondaryCategory: true}
+    // ]);
+
     return new Promise( (resolve, reject) => {
         if(Storage.data.labels != null)
             resolve(Util.copyObj(Storage.data.labels));
