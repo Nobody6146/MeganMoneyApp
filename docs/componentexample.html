@@ -25,7 +25,7 @@
                 <button onclick="" spa-model="_" spa-property="buttonLabel innerHTML" spa-handler="clickCallback onclick"></button>
                 <!-- spa-toggle lets us toggle an element attribute on or off if the model prop result to true/false -->
                 <!-- We'll use this to control disabling the submit button -->
-                <button spa-model="_" spa-toggle="disableSubmit disabled">Submit</button>
+                <button spa-model="_" spa-toggle="disableSubmit disabled" spa-handler="submitCallback onclick">Submit</button>
                 <!-- Setup a callback function whenever any model prop changes (*), validate the form -->
                 <span spa-model="_" spa-function="* validateForm" ></span>
                 <p>Hello
@@ -52,13 +52,17 @@
         <script>
             //Create our app with default options
             const spa =  new SootheApp();
+
+            function submitForm(domEvent, spaEvent) {
+                alert(`Form ${spaEvent.modelName} submitted`);
+            }
             
             //Bind our first model called "state" and set it to an empty object
             // Model data or DOM elements can be bound at any time when either changes
             let model = spa.bindModel("state", {});
             model.form = {
                 label: "Enter your name",
-                labelStyle: "",
+                labelStyle: "color: green",
                 firstName: "Bradley",
                 lastName: "Biera",
                 buttonLabel: "Reset",
@@ -69,7 +73,8 @@
                     spaEvent.model.firstName = "";
                     spaEvent.model.lastName = "";
                     console.log("cleared");
-                }
+                },
+                submitCallback: submitForm
             }
 
             //Lets bind a second set of component data
@@ -86,7 +91,8 @@
                     spaEvent.model.firstName = spaEvent.model.firstName.toLowerCase();
                     spaEvent.model.lastName = spaEvent.model.lastName.toLowerCase();
                     console.log("change case");
-                }
+                },
+                submitCallback: submitForm
             }
 
             //Define a callback function to handle form validation

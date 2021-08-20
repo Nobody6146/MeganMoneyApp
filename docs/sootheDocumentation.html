@@ -1,0 +1,245 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <title>MeganMoney | Home</title>
+        <link rel="icon" type="/image/png" href="favicon.png" sizes="16x16">
+        <link rel="manifest" href="manifest.json">
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons"rel="stylesheet">
+    </head>
+    <body>
+        <main>
+            <h1 style="text-align: center;">Soothe Documentation</h1>
+
+            <br />
+
+            <h2 style="text-align: center;">Introduction</h2>
+
+            <div class="section">
+                <h3>What is Soothe?</h3>
+                <p>
+                    A light-weight and easy way frontend library for making dynamic html webpages and client side applications likes SPAs
+                </p>
+                <p>
+                    Because SootheApp is library and not a framework, it can be dynamically added to any new or existing HTML page without side effects.
+                    If SootheApp for some reason fails to execute properly, no weird HTML is displayed.
+                </p>
+                <p>
+                    It's modular system allows you to select and combine the functionality you need to acheive your desired end result.
+                    This means many things can be done several ways, and you are given the building blocks to custom tailor each solution.
+                </p>
+                <p>
+                    SootheApp handles these 3 key features
+                    <ul>
+                        <li>1. Model binding</li>
+                        <li>2. DOM manipulation</li>
+                        <li>3. Client-side routing</li>
+                    </ul>
+                </p>
+            </div>
+
+            <hr />
+
+            <div class="section">
+                <h3>Design Goals</h3>
+                <p>
+                    Making dynamic webpages should be easy and hassle free. We shouldn't have to write complex JS queries and code to
+                    manipulate our HTML or push data in and out of it.
+                </p>
+                <p>
+                    There is a strong seperation of concerns. 
+                    Lets worry about writting/designing our page in the HTML and CSS files only!
+                    Likewise, we should only be writting our JavaScript in JS files and not mixing the two!
+                </p>
+                <p>
+                    HTML elements can spawn in the ways below
+                    <ul>
+                        <li>1. Setting HTML element attributes/properties</li>
+                        <li>2. Adding/removing HTML elements</li>
+                        <li>3. Calling/executing JS functions</li>
+                    </ul>
+                </p>
+                <p>
+                    SootheApp's models binding act as a communication layer/pipeline between our UI and app logic layers.
+                    These modals are global where anything can read or write to and acts as a shared contract between contributors.
+                    Everyone is reading/writing data as the same format, this makes communication easy!
+                </p>
+                <p>
+                    <i>
+                        NOTE: Models don't have to be used to communicate with app logic.
+                        Models can also be used exclusively to store individual element state or communicate with our DOM elements
+                    </i>
+                </p>
+            </div>
+
+            <hr />
+
+            <div class="section">
+                <h3>What makes Soothe different?</h3>
+                <p>
+                    There are many popular front-end frameworks, but Soothe is unique with it's model binding and event based framework.
+                    Here are a few of the differences between Soothe and other popular frameworks
+                    <ul>
+                        <li>
+                            1. The most popular frameworks like React or Angular require running a backend server or views/components to be compiled.
+                            SootheApp is a client-side library which means no view building is  or backend is needed.
+                            This means Soothe applications can actually be served over static filesystems.
+                        </li>
+                        <li>
+                            2. Many of the client-side libraries such as Vue require knowing model properties and HTML nodes during initiation time.
+                            Soothe app is 100% dynamic and things can be attached to the system at any point.
+                            This means:
+                            <ul>
+                                <li>
+                                    a. Whenever an HTML element is added to the DOM, or is changed, it can immmediately trigger binding events and start responding to them
+                                </li>
+                                <li>
+                                    b. Whenever a JS callback is added, it will be immediately ready to start handling callbacks when events trigger
+                                </li>
+                                <li>
+                                    c. Whenever new models or model properties are bound, they will immediately trigger events
+                                </li>
+                                <li>
+                                    <i>
+                                        NOTE: This makes SootheApp really development friendly as you can easily use developer tools in browser
+                                        to manipulate DOM and JS models to instally test changes without even reloading pages!
+
+                                    </i>
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            3. Many libraries generate ugly HTML documents with weird strings/characters being rendered in the actual HTML do to 
+                            framework scripts not being processed/rendered properly, or even have missing HTML nodes.
+                            Because SootheApp only uses standard html elements and custom attributes, no such side-effects exist
+                        </li>
+                        <li>
+                            4. Many frameworks don't support 2-way model binding out of the box. SootheApp does.
+                        </li>
+                    </ul>
+                </p>
+            </div>
+
+            <hr />
+
+            <div class="section">
+                <h3>How does DOM manipulation and model binding work?</h3>
+                <p>
+                    Developers will determine a data structure for their application state and communication. This data is then bound to the Soothe
+                    framework into a model. Any element via the DOM or JavaScript can read and write to this model.
+                </p>
+                <p>
+                    Changes to these models are automatically tracked by the framework and events are dispatched from the updates.
+                    From here, HTML elements and JavaScript callback functions can subscribe to these events and respond to them.
+                </p>
+                <p>
+                    HTML elements can spawn in the ways below
+                    <ul>
+                        <li>1. Setting HTML element attributes/properties</li>
+                        <li>2. Adding/removing HTML elements</li>
+                        <li>3. Calling/executing JS functions</li>
+                    </ul>
+                </p>
+                <p>
+                    <i>NOTE: The scope of HMTL nodes SootheApp has access to is configurable</i>
+                </p>
+            </div>
+
+            <hr />
+
+            <div class="section">
+                <h3>How does Client-side routing work?</h3>
+                <p>
+                    SootheApp has routing functions that can be manually called as well as the ability to integrates with your browser tab history.
+                    This means that SootheApp can react to address changes and other navigation events and trigger actions via a middleware pipeline.
+                </p>
+                <p>
+                    The middleware pipeline use regex patterns to map middleware functions to routes inorder to respond to incoming routing request. 
+                    A middleware step can choose to either continue running the next middleware or terminate the middleware execution process.
+                    This gives developers the ability to run both intermidden services and resolve endpoints as needed.
+                </p>
+                <p>
+                    During routing, route resolution information, route variables, object state, and the SootheApp context are all passed in to each piece of middleware called.
+                    This should help cover any type of use cases needed when routing.
+                </p>
+                <p>
+                    Out-of-the-box, SootheApp comes with a basic configurable view rendering system.
+                    Users can extend this system to easily create custom views that can be inserted into the middleware pipeline.
+                    This view system allows easy for easy fetching and aggregation of HTML, JavaScript, and JS data into a single page.
+                </p>
+            </div>
+
+            <hr />
+
+            <h2 style="text-align: center;">Getting Started</h2>
+
+            <div class="section">
+                <h3>Importing the framework</h3>
+                <p>
+                    Getting started is easy. The only file we need is the Soothe JS file
+                    Once you've done this, the following code will create an instance of SootheApp
+                    <ul>
+                        <li>
+                            <div>Create a new instance of the framework</div>
+                            <div>
+                                <code>let spa = new SootheApp();</code>
+                            </div>
+                            <div>
+                                An empty set or partial set of options can be passed in to change some basic setup of SootheApp
+                            </div>
+                            <div>
+                                <code>
+                                    const options = {
+                                        dom: {
+                                            root: "body"
+                                        },
+                                        routing: {
+                                            hashRouting: true,
+                                            exactMatch: true
+                                        }
+                                    };
+                                    let spa = new SootheApp(options);
+                                </code>
+                            </div>
+                        </li>
+                    </ul>
+                </p>
+            </div>
+
+            <hr />
+
+            <div class="section">
+                <h3>Setting SootheApp options</h3>
+                <p>
+                    SootheApp has a few basic options. Bellow are the default options configured
+                    <div>
+                        <code>
+                            const options = {};
+                            let spa = new SootheApp(options);
+                        </code>
+                    </div>
+                    <div>
+                        options.dom represents DOM related configuration
+                        <ul>
+                            <li>
+                                options.dom.root: is the HTML selector for what part of the DOM will be listening/respoonding to SootheApp events
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        options.routing represents routing related configuration
+                        <ul>
+                            <li>
+                                options.routing.hashRouting: sets SootheApp to consider URL fragments for handling routing matches.
+                                If disabled, full URL paths will be used for route matching
+                            </li>
+                            <li>
+                                options.routing.exactMatch: tells SootheApp that all routes must be exact matches and not partial ones
+                            </li>
+                        </ul>
+                    </div>
+                </p>
+            </div>
+        </main>
+    </body>
+

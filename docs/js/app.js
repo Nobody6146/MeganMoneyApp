@@ -185,7 +185,7 @@ App.promptVersionUpgrade = function() {
 
 //========= authentication
 App.isLoggedIn = function() {
-    return true;//auth.isSignedIn();
+    return auth.isSignedIn();
 }
 App.logIn = function() {
     try{
