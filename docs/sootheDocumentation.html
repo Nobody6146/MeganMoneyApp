@@ -6,10 +6,16 @@
         <link rel="icon" type="/image/png" href="favicon.png" sizes="16x16">
         <link rel="manifest" href="manifest.json">
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons"rel="stylesheet">
+        <style>
+            code, pre {
+                background-color: lightgray;
+            }
+        </style>
     </head>
     <body>
         <main>
             <h1 style="text-align: center;">Soothe Documentation</h1>
+            <h3 style="text-align: center;font-weight: normal;">The soothing way to design dynamic webpages!</h3>
 
             <br />
 
@@ -18,11 +24,10 @@
             <div class="section">
                 <h3>What is Soothe?</h3>
                 <p>
-                    A light-weight and easy way frontend library for making dynamic html webpages and client side applications likes SPAs
+                    A light-weight and easy frontend library for making dynamic html webpages and client side applications likes SPAs
                 </p>
                 <p>
-                    Because SootheApp is library and not a framework, it can be dynamically added to any new or existing HTML page without side effects.
-                    If SootheApp for some reason fails to execute properly, no weird HTML is displayed.
+                    Because SootheApp is a library and not a framework, it can be dynamically added to any new or existing HTML page without side effects.
                 </p>
                 <p>
                     It's modular system allows you to select and combine the functionality you need to acheive your desired end result.
@@ -48,16 +53,8 @@
                 </p>
                 <p>
                     There is a strong seperation of concerns. 
-                    Lets worry about writting/designing our page in the HTML and CSS files only!
+                    Let's worry about writting/designing our page in the HTML and CSS files only!
                     Likewise, we should only be writting our JavaScript in JS files and not mixing the two!
-                </p>
-                <p>
-                    HTML elements can spawn in the ways below
-                    <ul>
-                        <li>1. Setting HTML element attributes/properties</li>
-                        <li>2. Adding/removing HTML elements</li>
-                        <li>3. Calling/executing JS functions</li>
-                    </ul>
                 </p>
                 <p>
                     SootheApp's models binding act as a communication layer/pipeline between our UI and app logic layers.
@@ -67,7 +64,7 @@
                 <p>
                     <i>
                         NOTE: Models don't have to be used to communicate with app logic.
-                        Models can also be used exclusively to store individual element state or communicate with our DOM elements
+                        Models can also be used exclusively to store individual element state or communicate with other DOM elements
                     </i>
                 </p>
             </div>
@@ -82,12 +79,12 @@
                     <ul>
                         <li>
                             1. The most popular frameworks like React or Angular require running a backend server or views/components to be compiled.
-                            SootheApp is a client-side library which means no view building is  or backend is needed.
-                            This means Soothe applications can actually be served over static filesystems.
+                            SootheApp is a client-side library which means no view building or backend is needed.
+                            <b>This means Soothe applications can actually be served over static filesystems.</b>
                         </li>
                         <li>
-                            2. Many of the client-side libraries such as Vue require knowing model properties and HTML nodes during initiation time.
-                            Soothe app is 100% dynamic and things can be attached to the system at any point.
+                            2. Many of the client-side libraries such as Vue require knowing model state and HTML nodes to be bound to during framework initiation.
+                            Soothe app is 100% dynamic and any part of the ecosystem can be attached at any time and things will work.
                             This means:
                             <ul>
                                 <li>
@@ -103,15 +100,16 @@
                                     <i>
                                         NOTE: This makes SootheApp really development friendly as you can easily use developer tools in browser
                                         to manipulate DOM and JS models to instally test changes without even reloading pages!
-
+                                    </i>
+                                    <i>
+                                        NOTE 2: This also means we can easily do custom HTML displays that get determined at runtime!
                                     </i>
                                 </li>
                             </ul>
                         </li>
                         <li>
-                            3. Many libraries generate ugly HTML documents with weird strings/characters being rendered in the actual HTML do to 
-                            framework scripts not being processed/rendered properly, or even have missing HTML nodes.
-                            Because SootheApp only uses standard html elements and custom attributes, no such side-effects exist
+                            3. Many libraries can render ugly HTML documents with unwanted string/characters being present if the developer wrote bad code.
+                            Because SootheApp only uses standard html elements and custom attributes, no such side-effects exists. Incorrect coding is invisble to the UI.
                         </li>
                         <li>
                             4. Many frameworks don't support 2-way model binding out of the box. SootheApp does.
@@ -151,21 +149,21 @@
                 <h3>How does Client-side routing work?</h3>
                 <p>
                     SootheApp has routing functions that can be manually called as well as the ability to integrates with your browser tab history.
-                    This means that SootheApp can react to address changes and other navigation events and trigger actions via a middleware pipeline.
+                    This means that SootheApp can react to address changes and other navigation events to trigger actions via a middleware pipeline.
                 </p>
                 <p>
-                    The middleware pipeline use regex patterns to map middleware functions to routes inorder to respond to incoming routing request. 
+                    The middleware pipeline uses regex patterns to map middleware functions to routes and will be matched and executed in sequential order.
                     A middleware step can choose to either continue running the next middleware or terminate the middleware execution process.
                     This gives developers the ability to run both intermidden services and resolve endpoints as needed.
                 </p>
                 <p>
-                    During routing, route resolution information, route variables, object state, and the SootheApp context are all passed in to each piece of middleware called.
+                    During routing, route resolution information, route variables, object state, and the SootheApp context are all passed in to each piece of middleware executed.
                     This should help cover any type of use cases needed when routing.
                 </p>
                 <p>
                     Out-of-the-box, SootheApp comes with a basic configurable view rendering system.
                     Users can extend this system to easily create custom views that can be inserted into the middleware pipeline.
-                    This view system allows easy for easy fetching and aggregation of HTML, JavaScript, and JS data into a single page.
+                    This view system allows for easy fetching and aggregation of HTML, JavaScript, and JS data into a single page/route request.
                 </p>
             </div>
 
@@ -174,32 +172,27 @@
             <h2 style="text-align: center;">Getting Started</h2>
 
             <div class="section">
-                <h3>Importing the framework</h3>
+                <h3>Launching the framework</h3>
                 <p>
-                    Getting started is easy. The only file we need is the Soothe JS file
+                    Getting started is easy. The only file we need is the Soothe JS file.
                     Once you've done this, the following code will create an instance of SootheApp
                     <ul>
                         <li>
-                            <div>Create a new instance of the framework</div>
                             <div>
-                                <code>let spa = new SootheApp();</code>
+                                The line of code creates a new instance of the framework.
+                                Once instaniated, the framework will immediately begin running.
+                            </div>
+                            <div>
+                                <code><pre>const spa = new SootheApp();</pre></code>
                             </div>
                             <div>
                                 An empty set or partial set of options can be passed in to change some basic setup of SootheApp
                             </div>
                             <div>
-                                <code>
-                                    const options = {
-                                        dom: {
-                                            root: "body"
-                                        },
-                                        routing: {
-                                            hashRouting: true,
-                                            exactMatch: true
-                                        }
-                                    };
+                                <code><pre>
+                                    const options = {};
                                     let spa = new SootheApp(options);
-                                </code>
+                                </pre></code>
                             </div>
                         </li>
                     </ul>
@@ -213,33 +206,714 @@
                 <p>
                     SootheApp has a few basic options. Bellow are the default options configured
                     <div>
-                        <code>
-                            const options = {};
-                            let spa = new SootheApp(options);
-                        </code>
+                        <code><pre>
+                            const options = {
+                                dom: {
+                                    root: "body"
+                                },
+                                routing: {
+                                    hashRouting: true,
+                                    exactMatch: true
+                                }
+                            };
+                            const spa = new SootheApp(options);
+                        </pre></code>
                     </div>
                     <div>
-                        options.dom represents DOM related configuration
+                        <b>options.dom</b> represents DOM related configuration
                         <ul>
                             <li>
-                                options.dom.root: is the HTML selector for what part of the DOM will be listening/respoonding to SootheApp events
+                                <b>options.dom.root</b>: is the HTML selector for what part of the DOM will be listening/respoonding to SootheApp events
                             </li>
                         </ul>
                     </div>
                     <div>
-                        options.routing represents routing related configuration
+                        <b>options.routing</b> represents routing related configuration
                         <ul>
                             <li>
-                                options.routing.hashRouting: sets SootheApp to consider URL fragments for handling routing matches.
+                                <b>options.routing.hashRouting</b>: tells SootheApp to ignore the URL path during routing and only use the URL fragment for resolving routes.
                                 If disabled, full URL paths will be used for route matching
                             </li>
                             <li>
-                                options.routing.exactMatch: tells SootheApp that all routes must be exact matches and not partial ones
+                                <b>options.routing.exactMatch</b>: tells SootheApp that all defined routes will be treated as exact matches and not partial ones
                             </li>
                         </ul>
                     </div>
                 </p>
             </div>
+            
+            <hr />
+
+            <div class="section">
+                <h3>Creating Models</h3>
+                <p>
+                    Creating models is easy, we can use the following method:
+                    <div>
+                        <code><pre>SootheApp.prototype.bindModel(modelName, data)</pre></code>
+                        <ul>
+                            <li>
+                                Params
+                                <ul>
+                                    <li><b>modelName</b>: name to assign to the model so it can be referenced</li>
+                                    <li><b>data</b>: the underlying object that will be encapulsated in the model</li>
+                                </ul>
+                            </li>
+                            <li>
+                                Return: The resulting model being create (a proxy object wrapping the passed in data)
+                            </li>
+                        </ul>
+                    </div>
+                </p>
+                <p>
+                    The resulting code would look as follows:
+                    <div>
+                        <code><pre>
+                            const spa = new SootheApp();
+                            const modelName = "state";
+                            let data = {};
+                            let state = spa.bindModel(modelName, data);
+                        </pre></code>
+                    </div>
+                </p>
+                <p>
+                    Whenever you bind a model, model events are automatically fired for the model and all of it's nested properties.
+                    If you bind a model with the same name of an existing model, the old model will be unbound triggering an unbind event.
+                    The new model will then be bound (trigger yet another bind event) and replace the old model.
+                    Any references to the old bound model will no longer trigger events when modified.
+                </p>
+                <p>
+                    To unbind a model, we can call either <code><pre>SootheApp.prototype.unbindModel(modelName)</pre></code> 
+                    or <code><pre>SootheApp.prototype.unbindAllModels()</pre></code> 
+                </p>
+                <p>
+                    To retrieve already bound models from SootheApp, we can use the following methods:
+                    <ul>
+                        <li>
+                            <code><pre>SootheApp.prototype.getAllModels()</pre></code>
+                            <ul>
+                                <li>Returns: array of objects: <code><pre>[ {name: "modelName", model: proxy} ]</pre></code></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <code><pre>SootheApp.prototype.getModel(modelName)</pre></code>
+                            <ul>
+                                <li>Returns: array proxy of the model
+                            </ul>
+                        </li>
+                    </ul>
+                    <div>
+                        <i>
+                            NOTE: It's important to note that the model getters listed above support both root model names and the names of their children
+                        </i>
+                    </div>
+                </p>
+                <p>
+                    Sometimes getting just the model isn't enough and we need access to the raw data underneath it.
+                    We can get that two ways:
+                    <ul>
+                        <li>
+                            By calling a method to retrieve it
+                            <div>
+                                <code><pre>SootheApp.prototype.getModelData(modelName)</pre></code>
+                                <ul>
+                                    <li>Returns: object of the underlying data for the model
+                                </ul>
+                            </div>
+                        </li>
+                        <li>
+                            By calling the raw data property of the model. This property is configurable with <code>SootheApp.prototype.rawModelDataProperty</code>.
+                            The default value is set to <code>__this</code>
+                            <div>
+                                <code><pre>
+                                    const spa = new SootheApp();
+                                    let model = spa.bindModel("state", {});
+                                    console.log(model.__this);
+                                </pre></code>
+                            </div>
+                        </li>
+                    </ul>
+                    
+                </p>
+                
+            </div>
+
+            <hr />
+            
+            <div class="section">
+                <h3>Using Models</h3>
+                <p>
+                    When we bind a model, we can initialize some starting data in the model.
+                    After retrieving the model, we can also alter that data by adding/setting/removing model properties or child properties just like it were a regular object.
+                    When editing the proxy, the data object underneath will also change.
+                </p>
+                <p>
+                    Here's an example of using an already bound model
+                    <div>
+                        <code><pre>
+                            const spa = new SootheApp();
+                            const modelName = "shoppingCart";
+                            let data = {location: "Walmart Branch 1", items: [], lockCart: true};
+                            let model = spa.bindModel(modelName, data);
+                            //Change existing property
+                            model.location = "Walmart Branch 2";
+                            //Added a new property
+                            model.couponCode = "BURGERS";
+                            //Adds a child property
+                            model.items.push(["apple"]);
+                            //Removed a property
+                            delete model.lockCart;
+                        </pre></code>
+                    </div>
+                </p>
+                <p>
+                    It is important to notice that when a JS object is bound to a model, the returned result is a proxy object wrapped around your data.
+                    However, SootheApp can only detect changes made directly to the proxy object itself.
+                    If you modify the underlying data directly without accessing the proxy, SootheApp will not detect the change, and therefore events will not be dispatched.
+                </p>
+                <p>
+                    Using the model proxy model comes with a few warnings:
+                    <ul>
+                        <li>
+                            When your JS logic wants to process the data, we always want to edit a copy of the data and not the model itself to avoid mutating the source.
+                            The common way to make a copy of an object is serializing and deserializing it. 
+                            A proxy cannot be serialized, so you must get the underlying data behind the proxy in order to do this.
+                            <div>
+                                <code><pre>
+                                    let data = {
+                                        firstName: "Bob", lastName: "Belcher"
+                                    };
+                                    const model = spa.bindModel("state", {name: })
+                                    //Don't do this, you'll get an error
+                                    <strike>let copy = JSON.parse(JSON.stringify(model))</strike>
+                                    //Do this instead
+                                    let copy = JSON.parse(JSON.stringify(data))
+                                </pre></code>
+                            </div>
+                        </li>
+                        <li>
+                            Do not attempt to set a proxy property to another proxy property.
+                            Doing a set to the model will assign the underlying value to the proxy reference to that data, therefore the actual data will be lost.
+                            If you want to set a proxy property equal to another proxy property, you must get the underlying data of the second property
+                            <div>
+                                An example of this is the following:
+                            </div>
+                            <div>
+                                <code><pre>
+                                    let data = {
+                                        firstName: "Bob", lastName: "Belcher"
+                                    };
+                                    const model = spa.bindModel("state", {name: })
+                                    //Don't do this, you'll lose data!
+                                    <strike>model.firstName = model.firstName</strike>
+                                    //Do this instead
+                                    model.firstName = data.firstName;
+                                </pre></code>
+                            </div>
+                        </li>
+                    </ul>
+                </p>
+                <p>
+                    Once we've got our intial data hooked up to the app via models, we're reading to start harnessing the power of models.
+                    We'll use events to determine when to read data from models and when we need to update them as well.
+                </p>
+            </div>
+
+            <hr />
+
+            <div class="section">
+                <h3>Model and Property Name Notation</h3>
+                <p>
+                    Before responding to events, we must understand model notation, which is how models are represented as strings inside SootheApp.
+                    When creating a model, one must use proper JS identifier naming. Outside of this rule, performing look-ups
+                    and utilizing SootheApp features have a slightly different notation.
+                </p>
+                <p>
+                    Model notation allows a developer to travel inside the nested structure of a model using your standard "dot" operator you'd use on a JS object. 
+                    Model notation follows the same rules as traditional JS object identifiers except functions and square braces "[]" are not allowed.
+                    If you need to access an array item, you must use the dot operator.
+                </p>
+                <p>
+                    Here are a few examples of SootheApp models and their dot notation
+                    <ul>
+                        <li>
+                            <code><pre>
+                                payroll = {
+                                    employees: [
+                                        {
+                                            id: 1,
+                                            firstName: "Bob",
+                                            lastName: "Belcher",
+                                            pay: 145.65
+                                        }
+                                    ],
+                                    accounts: [
+                                        {
+                                            id: 0,
+                                            number: 1234839
+                                        }
+                                    ]
+                                    date: "12/01/21"
+                                }
+                            </pre></code>
+                            <ul>
+                                <li>payroll</li>
+                                <li>payroll.employees</li>
+                                <li>payroll.employees.0</li>
+                                <li>payroll.employees.0.id</li>
+                                <li>payroll.date</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </p>
+                <p>
+                    In addition to specifying names of nested properties, we can also use up to one asterisk ("*") as a wildcard operator in our 
+                    model name. This asterisk would replace one of the property names inside our modal notation such as "person.firstName" could
+                    become "person.*" or "*.person" when using a wildcard. Alternatively, a single asterisk with no dot operator means any model.
+                </p>
+                <p>
+                    The wildcard operator is useful for when we want to monitor changes to multiple properties with one listener.
+                    Using the payroll example we had above, we the following notations could represent the following combinations of properties:
+                    <ul>
+                        <li>
+                            <b>payroll.*</b>
+                            <ul>
+                                <li>payroll.employees</li>
+                                <li>payroll.accounts</li>
+                                <li>payroll.date</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <b>*.employees</b>
+                            <ul>
+                                <li>payroll.employees</li>
+                                <li>walmart.employees (assuming we had another modle called walmart)</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <b>payroll.employees.*</b>
+                            <ul>
+                                <li>payroll.employees.0</li>
+                                <li>payroll.accounts.1</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <b>payroll.employees.0.*</b>
+                            <ul>
+                                <li>payroll.employees.0.id</li>
+                                <li>payroll.employees.o.firstName</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <b>*</b>
+                            <ul>
+                                <li>payroll</li>
+                                <li>payroll.employees</li>
+                                <li>payroll.employees.0</li>
+                                <li>payroll.employees.0.id</li>
+                                <li>walmart (assuming we have a model with this name)</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </p>
+                <p>
+                    When referring to a property name, we can only use a single identifier name and do not have access to the dot operator. 
+                    Despite this, we can still use a wildcard operator to refer to any property name.
+                    For example, you would represent the following properties below as:
+                    <ul>
+                        <li>
+                            <div><b>payroll.employees.0.firstName</b></div>
+                            <div>
+                                modelName: payroll.employees.0
+                                <br />
+                                propertyName: firstName
+                            </div>
+                        </li>
+                        <li>
+                            <div><b>payroll.employees.*</b></div>
+                            <div>
+                                modelName: payroll.employees
+                                <br />
+                                propertyName: *
+                            </div>
+                        </li>
+                    </ul>
+                </p>
+                <p>
+                    Using this model and property notation, we can tell our DOM elements and JS callbacks how to subscribe for events
+                    as well as perform other operations that make use of model and property names.
+                </p>
+            </div>
+
+            <hr />
+
+            <div class="section">
+                <h3>Model Events</h3>
+                <p>
+                    A model event triggers when SootheApp determines that a change to a model or DOM could have impact to anything monitoring a model.
+                </p>
+                <p>
+                    The following scenarios is a complete list of scenarios that trigger a model event:
+                    <ul>
+                        <li>
+                            Notifies only the target HTML element
+                            <ul>
+                                <li>New element added to the DOM</li>
+                                <li>
+                                    A SootheApp related attribute on an HTML element changes
+                                    <div>
+                                        <i>NOTE: except for template or expression attribute changes</i>
+                                    </div>
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            Notifies all listening HTML elements and JavaScript listeners
+                            <ul>
+                                <li>New model bound</li>
+                                <li>Model unbound</li>
+                                <li>Model property or child propety modified (added, changed, or removed)</li>
+                                <li>A 2-way bound value changed via the DOM</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </p>
+                <p>
+                    A <code>SootheModelEvent</code> has the following properties:
+                    <ul>
+                        <li><b>app</b>: a reference to the instance of the SootheApp that generated the event</li>
+                        <li><b>model</b>: the proxy object of the model triggering the event (this can be a nested object and not the root model)</li>
+                        <li><b>data</b>: the underlying data underneath the model</li>
+                        <li><b>modelName</b>: the path name to the model in question</li>
+                        <li><b>propName</b>: the name of the property</li>
+                        <li><b>previousValue</b>: the previous value of the model property before the event triggered</li>
+                        <li><b>type</b>: string representing the name of the type of event generated</li>
+                        <li>
+                            <b>target</b>: the source HTML element triggering the event
+                            <div>
+                                <i>NOTE: will always be the SootheApp root element unless a HTML node specifically changes a value</i>
+                            </div>
+                        </li>
+                        <li><b>varName</b>: the fully qualified name of the property including it's model and propName</li>
+                        <li><b>rootModelName</b>: the name of the root model bound to SootheApp</li>
+                    </ul>
+                </p>
+                <p>
+                    There are 4 default event types generated in SootheApp
+                    <uL>
+                        <li>
+                            <b>bind</b>
+                            <div>
+                                A bind event symbolizes that new data is being made available by a model that was not previously avaliable,
+                                or that an HTML element is receiving data from a model that it did not previously have.
+                                A bind event happens when the following actions occur:
+                                <ul>
+                                    <li>A model is bound via <code>SootheApp.prototype.bindModel</code></li>
+                                    <li>When a new property that was not previoulsy set is added to a model or it's child properties</li>
+                                    <li>When an HTML element is added to the DOM</li>
+                                    <li>When an HTML element has a change to one of it's SootheApp attributes</li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li>
+                            <b>set</b>
+                            <div>
+                                A set event symbolizes that a new value has been set on an existing model (typically a value different than what was previously stored)
+                                A set event happens when the following actions occur:
+                                <ul>
+                                    <li>An existing property on a model or one of it's children was set to a new value</li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li>
+                            <b>unbind</b>
+                            <div>
+                                An unbind event symbolizes that a property that was once previously available on a model or once of it's children is no longer present.
+                                An unbind event happens when the following actions occur:
+                                <ul>
+                                    <li>A model is unbound</li>
+                                    <li>A parent property value was set to a different value that does not contain the child property</li>
+                                    <li>A model property was deleted</li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li>
+                            <b>handler</b>
+                            <div>
+                                A handler event symbolizes that an HTML element had an event handler triggered
+                                A handler event happens when the following actions occur:
+                                <ul>
+                                    <li>An HTML element fires an event handler that is bound to SootheApp</li>
+                                </ul>
+                            </div>
+                        </li>
+                    </uL>
+                </p>
+                <p>
+                    Using these event details, you can customize how your app will respond to these different events using
+                    SootheApp HTML element attributes and JS model listeners.
+                </p>
+            </div>
+
+            <hr />
+
+            <div class="section">
+                <h3>Model listeners</h3>
+                <p>
+                    Model listeners work just like event listeners in your typical JS code. We can attach any number of model listeners to SootheApp.
+                    These model listeners will match based on a set of options you pass in as a parameter. 
+                </p>
+                <p>
+                    Model listener options has the following structure <code>new SootheModelListenerOptions(modelName, propName, events, condition, discrete)</code>
+                    <ul>
+                        <li>
+                            <b>modelName</b>: model Name
+                            <ul>
+                                <li>
+                                    defaults to "*"
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            <b>propName</b>: prop Name
+                            <ul>
+                                <li>
+                                    defaults to "*"
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            <b>events</b>: array of strings
+                            <ul>
+                                <li>defaults to empty array []</li>
+                                <li>empty array means any/all events</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <b>condition</b>: function(modelEvent) or true/false expression
+                            <ul>
+                                <li>defaults to true</li>
+                                <li>A true value means the callback will fire when the event is triggered</li>
+                                <li>False means the event will be ignored and the callback will not be triggered</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <b>discrete</b>: true, false, or undefined
+                            <ul>
+                                <li>defaults to undefined</li>
+                                <li>Discrete means if an actual prop is being passed or is it a generic prop (prop name of a wildcard)</li>
+                                <li>Undefined means the callback will trigger whether the property name is generic or not</li>
+                                <li>True means the callback will only be triggered if the property name is not generic</li>
+                                <li>False means the callback will only be triggered if the property name is generic</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </p>
+                <p>
+                    Once you've decided on your options, you can add a model listener to soothe app using the function
+                    <div><code>Soothe.prototype.addModelListener(options, callback)</code></div>
+                    <ul>
+                        <li>
+                            Parameters
+                            <ul>
+                                <li><b>options</b>: SootheModelListenerOptions that determine when the callback is fired</li>
+                                <li><b>callback</b>: (SootheModelEvent) => {} : the callback to process the event</li>
+                            </ul>
+                        </li>
+                        <li>
+                            Return: SootheModelListener
+                        </li>
+                    </ul>
+                    <div>An example would look like:</div>
+                    <div>
+                        <code><pre>
+                            const spa = new SootheApp();
+                            let model = spa.bindModel("person", {firstName: "Bob", lastName: "Belcher"});
+                            const listenerOptions = {modelName: "person"};
+                            const callback = function(event) {
+                                console.log(event);
+                            }
+                            const listener = spa.addModelListener(listenerOptions, callback);
+                        </pre></code>
+                    </div>
+                </p>
+                <p>
+                    If you need to retrieve a listener, you have two options to request them
+                    <ul>
+                        <li>
+                            <code>SootheApp.prototype.getModelListeners(options)</code>
+                            <ul>
+                               <li>
+                                    Parameters
+                                    <ul>
+                                        <li>
+                                            <b>options</b>: SootheModelListenerOptions object to query against
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    Return: array of model listeners that match the options search criteria
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            <code>SootheApp.prototype.getListenersForModel(modelName)</code>
+                            <div>
+                                <ul>
+                                    <li>
+                                        Parameters
+                                        <ul>
+                                            <li>
+                                                <b>modelName</b>: name of the model
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li>
+                                        Return: array of model listeners who's model name matches or is a child model of the name
+                                    </li>
+                                    <li>
+                                        example
+                                        <div>
+                                            <code><pre>
+                                                spa.addModelListener({modelName: "person"}, console.log);
+                                                spa.addModelListener({modelName: "person.name"}, console.log);
+                                                spa.addModelListener({modelName: "person.name.first"}, console.log);
+                                                spa.getListenersForModel("person.name");
+                                                //Returns model for person.name and person.name.first
+                                            </pre></code>
+                                        </div>
+                                    </li>
+                                </ul>
+                                    
+                            </div>
+                        </li>
+                    </ul>
+                </p>
+                <p>
+                    In the event you need to remove a model listener, you can call the following methods
+                    <ul>
+                        <li>
+                            <code>SootheApp.prototype.removeModelListener(listener)</code>
+                            <div>
+                                Parameters
+                                <ul>
+                                    <li>
+                                        <b>listener</b>: the SootheModelListener to be removed
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li>
+                            <code>SootheApp.prototype.removeAllModelListeners()</code>
+                        </li>
+                    </ul>
+                </p>
+            </div>
+
+            <hr />
+
+            <div class="section">
+                <h3>Soothe HTML Element Attributes</h3>
+                <p>
+                    In order to have SootheApp manipulate the DOM, you must decorate each HTML element with a set of custom HTML attributes to identity
+                    which events the elemet should be listening to and how it should respond to them.
+                </p>
+                <p>
+                    Each attribute can be renamed as needed by simply changing the value of the associated SootheApp.protot value:
+                    Here is a complete list of html elements are respresented below:
+                    <ul>
+                        <li>
+                            <u>Model bind attribute</u>
+                            <br />
+                            <i>Property name</i>: SootheApp.prototype.modelBindAttr
+                            <br />
+                            <i>Default attribute name</i>: <b>"spa-model"</b>
+                            <br />
+                            <i>Pattern</i>: soothe-model="MODEL_NAME"
+                            <br />
+                            <i>Function</i>: Tells SootheApp which model to bind to
+                            <br />
+                            <i>Parameters</i>
+                            <ul>
+                                <li>
+                                    MODEL_NAME
+                                    <ul>
+                                        <li>
+                                            Model name notitation of the model
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            SootheApp.prototype.propBindAttr = "spa-property"
+                        </li>
+                        <li>
+                            SootheApp.prototype.attrBindAttr = "spa-attribute"
+                        </li>
+                        <li>
+                            SootheApp.prototype.inputBindAttr = "spa-input"
+                        </li>
+                        <li>
+                            SootheApp.prototype.templateBindAttr = "spa-template"
+                        </li>
+                        <li>
+                            SootheApp.prototype.compBindAttr = "spa-component"
+                        </li>
+                        <li>
+                            SootheApp.prototype.listBindAttr = "spa-list"
+                        </li>
+                        <li>
+                            SootheApp.prototype.dictBindAttr = "spa-dictionary"
+                        </li>
+                        <li>
+                            SootheApp.prototype.funcBindAttr = "spa-function"
+                        </li>
+                        <li>
+                            SootheApp.prototype.evtBindAttr = "spa-event"
+                        </li>
+                        <li>
+                            SootheApp.prototype.staticBindAttr = "spa-static"
+                        </li>
+                        <li>
+                            SootheApp.prototype.routeBindAttr = "spa-route"
+                        </li>
+                        <li>
+                            SootheApp.prototype.expressionBindAttr = "spa-expression"
+                        </li>
+                        <li>
+                            SootheApp.prototype.toggleBindAttr = "spa-toggle"
+                        </li>
+                        <li>
+                            SootheApp.prototype.deleteBindAttr = "spa-delete"
+                        </li>
+                        <li>
+                            SootheApp.prototype.repeatBindAttr = "spa-repeat"
+                        </li>
+                        <li>
+                            SootheApp.prototype.conditionBindAttr = "spa-condition"
+                        </li>
+                        <li>
+                            SootheApp.prototype.discreteBindAttr = "spa-discrete"
+                        </li>
+                        <li>
+                            SootheApp.prototype.suppressBindAttr = "spa-suppress"
+                        </li>
+                        <li>
+                            SootheApp.prototype.handlerBindAttr = "spa-handler"
+                        </li>
+                        <li>
+                            SootheApp.prototype.triggerEventBindAttr = "spa-trigger"
+                        </li>
+                        <li>
+                            SootheApp.prototype.toggleClassBindAttr = "spa-class"
+                        </li>
+                        <li>
+                            SootheApp.prototype.appendBindAttr = "spa-append"<li>
+                            ,
+                    </ul>
+                </p>
+            </div>
+            
         </main>
     </body>
-
+</html>

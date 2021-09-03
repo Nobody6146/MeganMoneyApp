@@ -29,6 +29,7 @@ Storage.data = {
     info: null,
     settings: null,
     labels: null,
+    transactions: null
 };
 Storage.clearCache = function() {
     Storage.data = {
@@ -40,7 +41,10 @@ Storage.clearCache = function() {
 Storage.getInfo = function(){
     return new Promise( (resolve, reject) => {
         if(Storage.data.info != null)
+        {
             resolve(Util.copyObj(Storage.data.info));
+            return;
+        }
         Query.info.get()
         .then(res => {
             Storage.data.info = res;
@@ -57,17 +61,34 @@ Storage.updateInfo = function(info) {
 Storage.getSettings = function(){
     return new Promise( (resolve, reject) => {
         if(Storage.data.settings != null)
+        {
             resolve(Util.copyObj(Storage.data.settings));
+            return;
+        }
         Query.settings.get()
         .then(res => {
-            Storage.data.settings = res;
-            resolve(Util.copyObj(res));
+            let settings = {};
+            res.forEach(x => {
+                settings[x.name] = x.value;
+            });
+            Storage.data.settings = settings;
+            resolve(Util.copyObj(settings));
         })
         .catch(err => reject(err));
     });
 }
 Storage.updateSettings = function(settings) {
     Storage.data.settings = settings;
+    let req = [];
+    const keys = Object.keys(settings);
+    for(let i = 0; i < keys.length; i++)
+    {
+        let setting = new Setting();
+        setting.id = i + 1;
+        setting.name = keys[i];
+        setting.value = settings[keys[i]];
+        req.push(setting);
+    }
     return Query.settings.update(settings)
     .then(res => Util.copyObj(res));
 }
@@ -78,8 +99,11 @@ Storage.getLabels = function(){
     // ]);
 
     return new Promise( (resolve, reject) => {
-        if(Storage.data.labels != null)
+        if(Storage.data.labels != null) 
+        {
             resolve(Util.copyObj(Storage.data.labels));
+            return;
+        }
         Query.labels.get()
         .then(res => {
             Storage.data.labels = res;
@@ -89,7 +113,37 @@ Storage.getLabels = function(){
     });
 }
 Storage.updateLabels = function(labels) {
+    labels.forEach(x => x.updateDate = new Date().toISOString());
     Storage.data.labels = labels;
     return Query.labels.update(labels)
+    .then(res => Util.copyObj(res));
+}
+Storage.getTransactions = function(accountingMonth){
+    const date = new Date().toISOString();
+
+    return new Promise( (resolve, reject) => {
+        if(Storage.data.transactions != null)
+        {
+            let transactions = Util.copyObj(Storage.data.transactions);
+            if(accountingMonth)
+                transactions = transactions.filter(x => x.accountingMonth === accountingMonth);
+            resolve(transactions);
+            return;
+        } 
+        Query.transactions.get()
+        .then(res => {
+            Storage.data.transactions = res;
+            let transactions = Util.copyObj(res);
+            if(accountingMonth)
+                transactions = transactions.filter(x => x.accountingMonth === accountingMonth);
+            resolve(transactions);
+        })
+        .catch(err => reject(err));
+    });
+}
+Storage.updateTransactions = function(transactions) {
+    transactions.forEach(x => x.updateDate = new Date().toISOString());
+    Storage.data.transactions = transactions;
+    return Query.transactions.update(transactions)
     .then(res => Util.copyObj(res));
 }

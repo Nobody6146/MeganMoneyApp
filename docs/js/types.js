@@ -22,3 +22,43 @@ Enums.budgetTrackingType = [
     {type: "budgetTrackingType", name: "Increase", value: 1},
     {type: "budgetTrackingType", name: "Decrease", value: 1}
 ];
+
+function Setting() {
+    this.id = 0;
+    this.createDate = new Date().toISOString();
+    this.updateDate = new Date().toISOString();
+    this.isActive = true;
+    this.name = null;
+    this.value = null;
+}
+
+function Label() {
+    this.id = 0;
+    this.createDate = new Date().toISOString();
+    this.updateDate = new Date().toISOString();
+    this.isActive = true;
+    this.name = "";
+    this.color = "#FF0000";
+    this.paymentMethod = true;
+    this.primaryCategory = true;
+    this.secondaryCategory = true;
+}
+
+function Transaction() {
+    const dateParts = new Date().toLocaleDateString().split("/");
+    this.id = 0;
+    this.createDate = new Date().toISOString();
+    this.updateDate = new Date().toISOString();
+    this.isActive = true;
+    this.transactionDate = new Date().toISOString();
+    this.accountingMonth = dateParts[2] + "-" + dateParts[0];
+    this.transactionMonth = dateParts[0];
+    this.transactionDay = dateParts[1];
+    this.transactionYear = dateParts[2];
+    this.transactionTypeId = 2;
+    this.paymentMethod = null;
+    this.amount = 0.0;
+    this.primaryCategoryId = null;
+    this.subCategoryIds = null;
+    this.memo = null;
+}

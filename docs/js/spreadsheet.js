@@ -173,16 +173,20 @@ Spreadsheet.create = function(name) {
         })
         .then(() => {
             const date = new Date().toISOString();
+            let positiveAmount = new Setting();
             return Storage.updateSettings([
-                {id: 1, createDate: date, updateDate: date, isActive: true, name: "positiveAmount", value: 1},
-                {id: 2, createDate: date, updateDate: date, isActive: true, name: "goodTransaction", value: 1}
+                {
+                    positiveAmount: 1,
+                    goodTransaction: 1
+                }
             ]);
         })
         .then(() => {
             const date = new Date().toISOString();
-            return Storage.updateLabels([
-                {id: 1, createDate: date, updateDate: date, isActive: true, name: "None", color: "#FF0000", paymentMethod: true, primaryCategory: true, secondaryCategory: true}
-            ])
+            let label = new Label();
+            label.id = 1;
+            label.name = "None";
+            return Storage.updateLabels([label]);
         })
         .then(() => {
             resolve(result);

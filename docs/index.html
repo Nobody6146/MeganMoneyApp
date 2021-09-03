@@ -136,8 +136,22 @@
                         <span>An unknown error has occured</span>
                     </div>
                     <div class="modal-footer">
-                        <button class="modal-button" onclick="App.dismissModals()">Cancel</button>
                         <button class="modal-button" onclick="App.dismissModals()">Ok</button>
+                    </div>
+                </div>
+            </div>
+            <div id="confirm-modal" class="modal modal-hidden">
+                <div class="modal-blackout"></div>
+                <div class="modal-container">
+                    <div class="modal-header">
+                        <h3>Error</h3>
+                    </div>
+                    <div class="modal-body">
+                        <span>An unknown error has occured</span>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="deny-button" class="modal-button" onclick="App.dismissModals()">Cancel</button>
+                        <button id="confirm-button" class="modal-button" onclick="App.dismissModals()">Ok</button>
                     </div>
                 </div>
             </div>
@@ -169,6 +183,7 @@
             try{
                 App.dismissModals();
                 App.start();
+                
             }
             catch(error)
             {

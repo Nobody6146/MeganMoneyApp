@@ -82,7 +82,7 @@ App.start = function() {
 
         App.models.currentSelection = {
             spreadsheet: App.storage.spreadsheet != null ? App.storage.spreadsheet : "",
-            month: App.storage.month = ""
+            month: App.storage.month
         };
 
         if(App.storage.version == null)
@@ -107,6 +107,8 @@ App.loadPages = function() {
     let loginView = new LoginView();
     let labelsView = new LabelsView();
     let labelsEditView = new LabelsEditView();
+    let transactionsView = new TransactionsView();
+    let transactionsEditView = new TransactionsEditView();
 
     //Bind routes
     spa.addRoute(".*", (req, res, next) => {
@@ -121,6 +123,8 @@ App.loadPages = function() {
     spa.addRoute(dashboardView.getRoute(), dashboardView.render.bind(dashboardView));
     spa.addRoute(labelsView.getRoute(), labelsView.render.bind(labelsView));
     spa.addRoute(labelsEditView.getRoute(), labelsEditView.render.bind(labelsEditView));
+    spa.addRoute(transactionsView.getRoute(), transactionsView.render.bind(transactionsView));
+    spa.addRoute(transactionsEditView.getRoute(), transactionsEditView.render.bind(transactionsEditView));
     spa.addRoute(".*", (req, res, next) => {
         res.spa.navigateTo(dashboardView.getRoute());
     });
@@ -129,7 +133,7 @@ App.loadPages = function() {
         tabs: {
             dashboard: {selected: false, link: dashboardView.getRoute()},
             labels: {selected: false, link: labelsView.getRoute()},
-            transactions: {selected: false},
+            transactions: {selected: false, link: transactionsView.getRoute()},
             budgets: {selected: false},
             savings: {selected: false},
         },
@@ -172,6 +176,18 @@ App.displayErrorModal = function(message) {
         messageBox.innerText = message;
     else
         messageBox.innerText = "An unknown error has occured";
+}
+App.displayConfirmModal = function(title, message, cancelTitle, confirmTitle, confirmCallback) {
+    const modal = App.displayModal("confirm-modal", true);
+    modal.querySelectorAll(".modal-header h3")[0].innerHTML = title;
+    modal.querySelectorAll(".modal-body span")[0].innerHTML = message;
+    modal.querySelectorAll("#deny-button")[0].innerHTML = cancelTitle != null ? cancelTitle : "Cancel";
+    modal.querySelectorAll("#confirm-button")[0].innerHTML = confirmTitle != null ? confirmTitle : "Ok";
+    modal.querySelectorAll("#confirm-button")[0].onclick = function() {
+        App.dismissModals();
+        if(confirmCallback)
+            confirmCallback();
+    }
 }
 App.displayCreateNewSpreadsheetModal = function() {
     App.models.newSpreadsheet.name = "";
@@ -260,6 +276,29 @@ App.updateSelection = function(spaEvent) {
 }
 
 //========= Data
+App.labels = {};
+App.labels.get = function() {
+    return new Promise( (resolve, reject) => {
+        Query.labels()
+        .then(res => {
+            resolve(res);
+        })
+        .catch(err => {
+            reject(err);
+        });
+    });
+}
+App.labels.set = function() {
+    return new Promise( (resolve, reject) => {
+        Query.labels()
+        .then(res => {
+            resolve(res);
+        })
+        .catch(err => {
+            reject(err);
+        });
+    });
+}
 App.transactions = {};
 App.transactions.get = function(month = new Date().getMonth() + 1, year = new Date().getFullYear()) {
     return new Promise( (resolve, reject) => {

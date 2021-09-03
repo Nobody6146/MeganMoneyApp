@@ -84,7 +84,14 @@ LabelsView.prototype.getData = function(req, res) {
             };
         });
         return {
-            labels: res
+            labels: res.filter(x => x.isActive),
+            buttons: {
+                newLabel: {
+                    onclick: function(event, spaEvent) {
+                        window.location = LabelsEditView.prototype.getRoute(0);
+                    }
+                }
+            }
         };
     });
 }
@@ -94,16 +101,195 @@ function LabelsEditView() {
 }
 LabelsEditView.prototype = Object.create(MeganMoneyView.prototype);
 LabelsEditView.prototype.getRoute = function(id) {
-    return LabelsView.prototype.getRoute() + "edit/" + (id === undefined ? ":id" : id);
+    return LabelsView.prototype.getRoute() + "/edit/" + (id === undefined ? ":id" : id);
 }
 LabelsEditView.prototype.getHTML = function() {
    return fetch("views/labels/edit.html");
 }
 LabelsEditView.prototype.getData = function(req) {
+    const id = req.params.id;
+    
     return Storage.getLabels()
-    .then(res => {
+    .then(labels => {
+        const label = id == 0 ? new Label() : labels.filter(x => x.id == id)[0];
         return {
-            label:  res.filter(x => x.id == req.params.id)[0]
+            label, 
+            buttons: {
+                save: {
+                    onclick: function(event, spaEvent) {
+                        App.displayWaitingModal();
+                        if(id == 0) {
+                            labels.push(label);
+                            label.id = labels.length;
+                        }
+                        Storage.updateLabels(labels)
+                        .then(res => {
+                            App.dismissModals();
+                            window.location = LabelsView.prototype.getRoute()
+                        })
+                        .catch(err => {
+                            App.dismissModals();
+                            App.logError(err);
+                        });
+                    }
+                },
+                delete: {
+                    onclick: function(event, spaEvent) {
+                        App.displayConfirmModal(
+                            "Delete Label",
+                            "Are you sure you want to delete this label?",
+                            "No",
+                            "Yes",
+                            function() {
+                                App.displayWaitingModal();
+                                if(id == 0) {
+                                    window.location = LabelsView.prototype.getRoute();
+                                    return;
+                                }
+                                label.isActive = false;
+                                Storage.updateLabels(labels)
+                                .then(res => {
+                                    App.dismissModals();
+                                    window.location = LabelsView.prototype.getRoute()
+                                })
+                                .catch(err => {
+                                    App.dismissModals();
+                                    App.logError(err);
+                                });
+                            }
+                        );
+                    }
+                },
+                cancel: {
+                    onclick: function(event, spaEvent) {
+                        window.location = LabelsView.prototype.getRoute()
+                    }
+                }
+            }
+        };
+    });
+}
+
+
+//============ Transactions ============//
+function TransactionsView() {
+    MeganMoneyView.call(this,"Transactions");
+}
+TransactionsView.prototype = Object.create(MeganMoneyView.prototype);
+TransactionsView.prototype.getRoute = function() {
+    return "#transactions";
+}
+TransactionsView.prototype.getHTML = function() {
+   return fetch("views/transactions/index.html");
+}
+TransactionsView.prototype.getData = function(req, res) {
+    let settings = null;
+    return Storage.getSettings()
+    .then(res => {
+        settings = res;
+        return Storage.getTransactions();
+    })
+    .then(res => {
+        res.forEach(x => {
+            const route = TransactionsEditView.prototype.getRoute(x.id);
+            x.edit = function() {
+                window.location = route;
+            };
+        });
+        let accountingMonth = Storage.getCurrentAccountingMonth();
+        const dateParts = accountingMonth.split("-");
+        let periodTransactions = res.filter(x => x.isActive && x.transactionYear == dateParts[0] && x.transactionMonth == dateParts[1]);
+        let goodTransactionType = settings.goodTransaction
+        return {
+            accounting: {
+                accountingMonth,
+                balance: periodTransactions.reduce(
+                    (total, next) => total + (next.transactionTypeId == settings.goodTransaction ? next.amount : - next.amount),
+                    0
+                ),
+            },
+            transactions: periodTransactions,
+            buttons: {
+                newLabel: {
+                    onclick: function(event, spaEvent) {
+                        window.location = TransactionsEditView.prototype.getRoute(0);
+                    }
+                }
+            }
+        };
+    });
+}
+
+function TransactionsEditView() {
+    MeganMoneyView.call(this,"Transactions");
+}
+TransactionsEditView.prototype = Object.create(MeganMoneyView.prototype);
+TransactionsEditView.prototype.getRoute = function(id) {
+    return TransactionsView.prototype.getRoute() + "/edit/" + (id === undefined ? ":id" : id);
+}
+TransactionsEditView.prototype.getHTML = function() {
+   return fetch("views/transactions/edit.html");
+}
+TransactionsEditView.prototype.getData = function(req) {
+    const id = req.params.id;
+    
+    return Storage.getTransactions()
+    .then(transactions => {
+        const transaction = id == 0 ? new Transaction() : transactions.filter(x => x.id == id)[0];
+        return {
+            transaction, 
+            buttons: {
+                save: {
+                    onclick: function(event, spaEvent) {
+                        App.displayWaitingModal();
+                        if(id == 0) {
+                            transactions.push(transactions);
+                            transaction.id = transactions.length;
+                        }
+                        Storage.updateTransactions(transactions)
+                        .then(res => {
+                            App.dismissModals();
+                            window.location = TransactionsView.prototype.getRoute()
+                        })
+                        .catch(err => {
+                            App.dismissModals();
+                            App.logError(err);
+                        });
+                    }
+                },
+                delete: {
+                    onclick: function(event, spaEvent) {
+                        App.displayConfirmModal(
+                            "Delete Transaction",
+                            "Are you sure you want to delete this transaction?",
+                            "No",
+                            "Yes",
+                            function() {
+                                App.displayWaitingModal();
+                                if(id == 0) {
+                                    window.location = TransactionsView.prototype.getRoute();
+                                    return;
+                                }
+                                transaction.isActive = false;
+                                Storage.updateTransactions(transactions)
+                                .then(res => {
+                                    App.dismissModals();
+                                    window.location = TransactionsView.prototype.getRoute()
+                                })
+                                .catch(err => {
+                                    App.dismissModals();
+                                    App.logError(err);
+                                });
+                            }
+                        );
+                    }
+                },
+                cancel: {
+                    onclick: function(event, spaEvent) {
+                        window.location = TransactionsView.prototype.getRoute()
+                    }
+                }
+            }
         };
     });
 }
