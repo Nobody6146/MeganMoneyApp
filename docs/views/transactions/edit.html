@@ -4,12 +4,22 @@
             <option spa-model="_" spa-property="value value;name innerHTML" spa-trigger="value bind {{page.data.transaction.transactionTypeId}}"></option>
         </optgroup>
     </select>
+    <select>
+        <optgroup spa-template="PaymentMethodsListTemplate">
+            <option spa-model="_" spa-property="id value;name innerHTML" spa-trigger="id bind {{page.data.transaction.paymentMethodId}}"></option>
+        </optgroup>
+    </select>
+    <select>
+        <optgroup spa-template="PrimaryCategoriesListTemplate">
+            <option spa-model="_" spa-property="id value;name innerHTML" spa-trigger="id bind {{page.data.transaction.primaryCategoryId}}"></option>
+        </optgroup>
+    </select>
     <datalist spa-template="LabelsListTemplate">
-        <option spa-model="_" spa-property="id value; name innerHTML"></option>
+        <option spa-model="_" spa-property="name value; name innerHTML"></option>
     </datalist>
     <div spa-template="SubCategoryIconTemplate">
-        <div spa-model="page.data.selectSubCategories" spa-del="* evt" spa-evt="unbind">
-            <button style="margin:2px;" spa-model="_" soothe-prop="id name;name innerText" onclick="removeCategory(this.name)"></button>
+        <div spa-model="_" spa-delete="* evt" spa-event="unbind">
+            <button style="margin:2px;" spa-model="_" spa-property="name name;name innerText" spa-handler="removeCategory onclick"></button>
         </div>
     </div>
 </div>
@@ -41,28 +51,32 @@
         <tr>
             <td>Payment Method</td>
             <td>
-                <input type="text" list="paymentCategoryList" spa-model="page.data.transaction" spa-property="paymentMethodId value" spa-input="paymentMethodId value"/>
-                <datalist id="paymentCategoryList" spa-model="page.data.labels" spa-list="paymentMethods LabelsListTemplate">
-                </datalist>
+                <select spa-model="page.data.transaction" spa-property="paymentMethodId value" spa-input="paymentMethodId value">
+                    <option value="" selected="" disabled="" hidden="">&lt;Pick Payment Method&gt;</option>
+                    <optgroup label="Payment Method" spa-model="page.data.labels" spa-list="paymentMethods PaymentMethodsListTemplate">
+                    </optgroup>
+                </select>
             </td>
         </tr>
         <tr>
             <td>Category</td>
             <td>
-                <input type="text" list="primaryCategoryList" spa-model="page.data.transaction" spa-property="primaryCategoryId value" spa-input="primaryCategoryId value"/>
-                <datalist id="primaryCategoryList" spa-model="page.data.labels" spa-list="primaryCategories LabelsListTemplate">
-                </datalist>
+                <select spa-model="page.data.transaction" spa-property="primaryCategoryId value" spa-input="primaryCategoryId value">
+                    <option value="" selected="" disabled="" hidden="">&lt;Pick Payment Method&gt;</option>
+                    <optgroup label="Category" spa-model="page.data.labels" spa-list="primaryCategories PrimaryCategoriesListTemplate">
+                    </optgroup>
+                </select>
             </td>
         </tr>
         <tr>
-            <td>Sub Categories</td>
+            <td style="vertical-align: top;">Sub Categories</td>
             <td>
                 <form spa-model="page.data.subCategories" spa-handler="addSubCategory onsubmit">
-                    <input type="text" list="subCategoryList" spa-model="page.data.transaction" spa-property="subCategoryId value" spa-input="subCategoryId value"/>
+                    <input type="text" list="subCategoryList" spa-model="page.data.subCategories" spa-property="selected value" spa-input="selected value"/>
                     <datalist id="subCategoryList" spa-model="page.data.labels" spa-list="subCategories LabelsListTemplate">
                     </datalist>
                 </form>
-                <div id="subCategories" spa-model="page.data.selectedSubCategories" soothe-list="* SubCategoryIconTemplate" spa-evt="bind" spa-append>
+                <div id="subCategories" style="display: flex;" spa-model="page.data.subCategories.categories" spa-component="* SubCategoryIconTemplate" spa-event="bind" spa-append>
                 </div>
             </td>
         </tr>

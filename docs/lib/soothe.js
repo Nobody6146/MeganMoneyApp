@@ -242,7 +242,7 @@ function SootheApp(options) {
                 let model = bindOrGet(obj, prop, false);
                 // if(previousValue instanceof Object)
                 //     Object.keys(previousValue).forEach(x => delete model[x]);
-                obj[prop] = value[SootheApp.prototype.rawModelDataProp] ? value[SootheApp.prototype.rawModelDataProp] : value;
+                obj[prop] = value == null || typeof value !== "object" ? value : value[SootheApp.prototype.rawModelDataProp] ? value[SootheApp.prototype.rawModelDataProp] : value;
                 bindOrGet(obj, prop, true);
                 // if(model) {
                 
@@ -628,10 +628,11 @@ function SootheApp(options) {
                 let values = this.splitAttributeValue(attrs.del.value);
                 let propValue = event.value != undefined ? event.value : event.model;
                 let props = values[0];
+                console.log(props);
                 let del = false;
                 if(props[1] === SootheApp.prototype.eventModifier)
                     del = true;
-                else if((prop[0] === SootheApp.prototype.wildcardChar || prop === event.propName) && propValue == true) 
+                else if((props[0] === SootheApp.prototype.wildcardChar || props[0] === event.propName) && propValue == true) 
                     del = true;
                 if(del){
                     target.parentNode.removeChild(target);

@@ -272,28 +272,36 @@ TransactionsEditView.prototype.getData = function(req) {
                 errors.push("primary category is required")
             return errors.length == 0 ? null : errors.join(", ");
         }
+        labels.forEach(x => x.removeCategory = function(event, spaEvent) {
+            let model = spaEvent.app.getModel(spaEvent.modelName.substring(0, spaEvent.modelName.lastIndexOf(".")));
+            console.log(model);
+            model.splice(spaEvent.varName, 1);
+        });
+        const labelGroups = {
+            paymentMethods: labels.filter(x => x.paymentMethod && x.isActive),
+            primaryCategories: labels.filter(x => x.primaryCategory && x.isActive),
+            subCategories: labels.filter(x => x.subCategory && x.isActive),
+        };
         let subCategories = {
             selected: null,
-            categories: []
-        }
+            categories: !transaction.subCategoryIds ? [] : transaction.subCategoryIds.split(" ").map(x => labels.find(y => y.id == x))
+        };
         const addSubCategory = function(event, spaEvent) {
             event.preventDefault();
             // alert();
-            let label = labels.find(x => x.id == subCategories.selected);
-            subCategories.selected = null;
+            let label = labelGroups.subCategories.find(x => x.name == spaEvent.model.selected);
+            spaEvent.model.selected = null;
             if(!label)
                 return;
-            categories.push(label);
+            if(spaEvent.data.categories.findIndex(x => x.id == label.id) !== -1)
+                return;
+            spaEvent.model.categories.push(label);
         }
         subCategories.addSubCategory = addSubCategory;
         return {
             transaction,
             transactionTypes,
-            labels: {
-                paymentMethods: labels.filter(x => x.paymentMethod),
-                primaryCategories: labels.filter(x => x.primaryCategory),
-                subCategories: labels.filter(x => x.subCategory),
-            },
+            labels: labelGroups,
             subCategories,
             buttons: {
                 save: {
