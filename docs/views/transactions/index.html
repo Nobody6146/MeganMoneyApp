@@ -1,27 +1,23 @@
 <div hidden>
     <table>
-        <tbody spa-template="LabelListTemplate">
-            <tr spa-model="_" spa-handler="edit onclick; edit ontouchend;">
+        <tbody spa-template="TransactionListTemplate">
+            <tr spa-model="_" spa-handler="edit onclick;">
                 <td>
-                    <span spa-model="_" spa-property="name innerHTML"></span>
+                    <div>
+                        <span spa-model="_" spa-property="date innerHTML"></span>
+                    </div>
+                    <div>
+                        <span class="text-money" spa-model="_" spa-property="amount innerHTML" spa-class="transactionClass"></span>
+                    </div>
+                </td>
+                <td>
+                    <div>
+                        <div class="labels-display" spa-model="_" spa-property="name innerHTML; color style {{border: 2px solid {{value}}}}"></div>
+                    </div>
                 </td>
                 <td spa-model="_" >
                     <div>
-                        <div class="labels-display" spa-model="_" spa-property="color style {{background-color:{{value}}}}"></div>
-                    </div>
-                    
-                </td>
-                <td spa-model="_" >
-                    <div style="display: flex; justify-content: space-around;">
-                        <div>
-                            PC <input spa-model="_" spa-property="primaryCategory checked" type="checkbox" disabled/>
-                        </div>
-                        <div>
-                            SC <input spa-model="_" spa-property="secondaryCategory checked" type="checkbox" disabled/>
-                        </div>
-                        <div>
-                            PM <input spa-model="_" spa-property="paymentMethod checked" type="checkbox" disabled/>
-                        </div>
+                        <span spa-model="_" spa-property="memo innerHTML"></span>
                     </div>
                 </td>
             </tr>
@@ -30,10 +26,22 @@
     
 </div>
 
+<div style="width: 100%;">
+    <div style="width: 100%; text-align: center;">
+        <span spa-model="page.data.accounting" spa-property="accountingMonth innerHTML"></span>
+    </div>
+    <div style="width: 100%; text-align: center;">
+        <span>Balance </span>
+        <span class="text-money" spa-model="page.data.accounting" spa-property="balance innerHTML" spa-class="transactionClass"></span>
+    </div>
+</div>
+
 <table style="width: 100%;">
     <thead></thead>
-    <tbody spa-model="page.data" spa-list="labels LabelListTemplate">
+    <tbody spa-model="page.data" spa-list="transactions TransactionListTemplate">
     </tbody>
 </table>
 
-<button spa-model="page.data.buttons.newLabel" spa-handler="onclick onclick">New label</button>
+<div style="width: 100%; position: fixed; bottom: 20vh; display: flex; justify-content: center;">
+    <button spa-model="page.data.buttons.newTransaction" spa-handler="onclick onclick">New Transaction</button>
+</div>

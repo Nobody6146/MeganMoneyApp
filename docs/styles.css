@@ -355,3 +355,15 @@ body {
   width: 60px;
   height: 20px;
 }
+
+.text-money::before {
+  content: "$";
+}
+
+.transaction-good {
+  color: green;
+}
+
+.transaction-bad {
+  color: red;
+}

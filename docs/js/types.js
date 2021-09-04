@@ -38,10 +38,10 @@ function Label() {
     this.updateDate = new Date().toISOString();
     this.isActive = true;
     this.name = "";
-    this.color = "#FF0000";
+    this.color = "";
     this.paymentMethod = true;
     this.primaryCategory = true;
-    this.secondaryCategory = true;
+    this.subCategory = true;
 }
 
 function Transaction() {

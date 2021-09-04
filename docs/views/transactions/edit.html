@@ -1,33 +1,75 @@
+<div hidden>
+    <select>
+        <optgroup spa-template="TransactionTypesListTemplate">
+            <option spa-model="_" spa-property="value value;name innerHTML" spa-trigger="value bind {{page.data.transaction.transactionTypeId}}"></option>
+        </optgroup>
+    </select>
+    <datalist spa-template="LabelsListTemplate">
+        <option spa-model="_" spa-property="id value; name innerHTML"></option>
+    </datalist>
+    <div spa-template="SubCategoryIconTemplate">
+        <div spa-model="page.data.selectSubCategories" spa-del="* evt" spa-evt="unbind">
+            <button style="margin:2px;" spa-model="_" soothe-prop="id name;name innerText" onclick="removeCategory(this.name)"></button>
+        </div>
+    </div>
+</div>
+
 <table>
     <tbody style="width: 100%">
         <tr>
-            <td>Label Name</td>
+            <td>Date</td>
             <td>
-                <input type="text" placeholder="Name" spa-model="page.data.label" spa-property="name value" spa-input="name value"/>
+                <input type="date" placeholder="Pick date" spa-model="page.data.transaction" spa-property="transactionDate value" spa-input="name value"/>
             </td>
         </tr>
         <tr>
-            <td>Color</td>
+            <td>Amount</td>
             <td>
-                <input type="color" spa-model="page.data.label" spa-property="color value" spa-input="color value" />
+                <input type="number" spa-model="page.data.transaction" spa-property="amount value" spa-input="amount value" />
             </td>
         </tr>
         <tr>
-            <td>Primary Category</td>
+            <td>Type</td>
             <td>
-                <input spa-model="page.data.label" spa-property="primaryCategory checked" type="checkbox" spa-input="primaryCategory checked"/>
-            </td>
-        </tr>
-        <tr>
-            <td>Secondary Category</td>
-            <td>
-                <input spa-model="page.data.label" spa-property="secondaryCategory checked" type="checkbox" spa-input="secondaryCategory checked"/>
+                <select spa-model="page.data.transaction" spa-property="transactionTypeId value" spa-input="transactionTypeId value">
+                    <option value="" selected="" disabled="" hidden="">&lt;Pick Type&gt;</option>
+                    <optgroup label="Types" spa-model="page.data" spa-list="transactionTypes TransactionTypesListTemplate">
+                    </optgroup>
+                </select>
             </td>
         </tr>
         <tr>
             <td>Payment Method</td>
             <td>
-                <input spa-model="page.data.label" spa-property="paymentMethod checked" type="checkbox" spa-input="paymentMethod checked"/>
+                <input type="text" list="paymentCategoryList" spa-model="page.data.transaction" spa-property="paymentMethodId value" spa-input="paymentMethodId value"/>
+                <datalist id="paymentCategoryList" spa-model="page.data.labels" spa-list="paymentMethods LabelsListTemplate">
+                </datalist>
+            </td>
+        </tr>
+        <tr>
+            <td>Category</td>
+            <td>
+                <input type="text" list="primaryCategoryList" spa-model="page.data.transaction" spa-property="primaryCategoryId value" spa-input="primaryCategoryId value"/>
+                <datalist id="primaryCategoryList" spa-model="page.data.labels" spa-list="primaryCategories LabelsListTemplate">
+                </datalist>
+            </td>
+        </tr>
+        <tr>
+            <td>Sub Categories</td>
+            <td>
+                <form spa-model="page.data.subCategories" spa-handler="addSubCategory onsubmit">
+                    <input type="text" list="subCategoryList" spa-model="page.data.transaction" spa-property="subCategoryId value" spa-input="subCategoryId value"/>
+                    <datalist id="subCategoryList" spa-model="page.data.labels" spa-list="subCategories LabelsListTemplate">
+                    </datalist>
+                </form>
+                <div id="subCategories" spa-model="page.data.selectedSubCategories" soothe-list="* SubCategoryIconTemplate" spa-evt="bind" spa-append>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td>Memo</td>
+            <td>
+                <input type="text" spa-model="page.data.transaction" spa-property="memo value" spa-input="memo value" />
             </td>
         </tr>
     </tbody>

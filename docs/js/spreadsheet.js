@@ -186,6 +186,7 @@ Spreadsheet.create = function(name) {
             let label = new Label();
             label.id = 1;
             label.name = "None";
+            label.color = "#FF0000";
             return Storage.updateLabels([label]);
         })
         .then(() => {

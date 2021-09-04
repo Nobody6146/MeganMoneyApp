@@ -112,12 +112,28 @@ LabelsEditView.prototype.getData = function(req) {
     return Storage.getLabels()
     .then(labels => {
         const label = id == 0 ? new Label() : labels.filter(x => x.id == id)[0];
+        const validateInput = function(label) {
+            let errors = [];
+            if(label.name == null || label.name === "")
+                errors.push("name is required")
+            else if(labels.findIndex(x => x.name === label.name && x.id != label.id) > -1)
+                errors.push("name is already in use");
+            if(label.color == null || label.color === "")
+                errors.push("color is required")
+            return errors.length == 0 ? null : errors.join(", ");
+        }
         return {
             label, 
             buttons: {
                 save: {
                     onclick: function(event, spaEvent) {
                         App.displayWaitingModal();
+                        let validationError = validateInput(label);
+                        if(validationError)
+                        {
+                            App.displayErrorModal(validationError);
+                            return;
+                        }
                         if(id == 0) {
                             labels.push(label);
                             label.id = labels.length;
@@ -183,34 +199,38 @@ TransactionsView.prototype.getHTML = function() {
    return fetch("views/transactions/index.html");
 }
 TransactionsView.prototype.getData = function(req, res) {
-    let settings = null;
-    return Storage.getSettings()
+    return Promise.all([Storage.getSettings(), Storage.getLabels(), Storage.getTransactions()])
     .then(res => {
-        settings = res;
-        return Storage.getTransactions();
-    })
-    .then(res => {
-        res.forEach(x => {
-            const route = TransactionsEditView.prototype.getRoute(x.id);
-            x.edit = function() {
-                window.location = route;
-            };
-        });
+        const [settings, labels, transactions] = res;
         let accountingMonth = Storage.getCurrentAccountingMonth();
-        const dateParts = accountingMonth.split("-");
-        let periodTransactions = res.filter(x => x.isActive && x.transactionYear == dateParts[0] && x.transactionMonth == dateParts[1]);
-        let goodTransactionType = settings.goodTransaction
+        let dateParts = accountingMonth.split("-");
+        let periodTransactions = transactions.filter(x => x.isActive && x.transactionYear == dateParts[0] && x.transactionMonth == dateParts[1]);
+        periodTransactions.forEach(x => {
+            const dateParts = new Date(x.transactionDate).toString().split(" ");
+            x.date = dateParts[0] + " " + parseInt(dateParts[2]);
+            x.edit = function() {
+                window.location = TransactionsEditView.prototype.getRoute(x.id);
+            };
+            x.transactionClass = x.transactionTypeId == settings.goodTransaction ? "transaction-good" : "transaction-bad";
+            x.primaryCategory = labels.find(y => y.id == x.primaryCategoryId);
+            x.color = x.primaryCategory.color;
+            x.name = x.primaryCategory.name;
+        });
+        let balance = periodTransactions.reduce(
+            (total, next) => total + (next.transactionTypeId == settings.positiveAmount ? next.amount : - next.amount),
+            0
+        );
+        dateParts = new Date(accountingMonth).toString().split(" ");
         return {
             accounting: {
-                accountingMonth,
-                balance: periodTransactions.reduce(
-                    (total, next) => total + (next.transactionTypeId == settings.goodTransaction ? next.amount : - next.amount),
-                    0
-                ),
+                accountingMonth: dateParts[1] + " " + dateParts[3],
+                balance,
+                transactionClass: (balance < 0 === settings.goodTransaction < 0) || (balance >= 0 === settings.goodTransaction >= 0)
+                    ? "transaction-good" : "transaction-bad"
             },
             transactions: periodTransactions,
             buttons: {
-                newLabel: {
+                newTransaction: {
                     onclick: function(event, spaEvent) {
                         window.location = TransactionsEditView.prototype.getRoute(0);
                     }
@@ -233,15 +253,58 @@ TransactionsEditView.prototype.getHTML = function() {
 TransactionsEditView.prototype.getData = function(req) {
     const id = req.params.id;
     
-    return Storage.getTransactions()
-    .then(transactions => {
+    return Promise.all([Storage.getTransactions(), Storage.getLabels()])
+    .then(res => {
+        const [transactions, labels] = res;
+        const transactionTypes = Util.copyObj(Enums.transactionType);
         const transaction = id == 0 ? new Transaction() : transactions.filter(x => x.id == id)[0];
+        const validateInput = function(transaction) {
+            let errors = [];
+            if(transaction.transactionDate == null || transaction.transactionDate === "")
+                errors.push("transaction date is required")
+            if(transaction.transactionTypeId == null || transaction.transactionTypeId === "")
+                errors.push("transaction type id is required")
+            if(transaction.paymentMethod == null || transaction.paymentMethod === "")
+                errors.push("payment method id is required")
+            if(transaction.amount == null || transaction.amount == 0)
+                errors.push("non-zero amount is required")
+            if(transaction.primaryCategoryId == null || transaction.primaryCategoryId === "")
+                errors.push("primary category is required")
+            return errors.length == 0 ? null : errors.join(", ");
+        }
+        let subCategories = {
+            selected: null,
+            categories: []
+        }
+        const addSubCategory = function(event, spaEvent) {
+            event.preventDefault();
+            // alert();
+            let label = labels.find(x => x.id == subCategories.selected);
+            subCategories.selected = null;
+            if(!label)
+                return;
+            categories.push(label);
+        }
+        subCategories.addSubCategory = addSubCategory;
         return {
-            transaction, 
+            transaction,
+            transactionTypes,
+            labels: {
+                paymentMethods: labels.filter(x => x.paymentMethod),
+                primaryCategories: labels.filter(x => x.primaryCategory),
+                subCategories: labels.filter(x => x.subCategory),
+            },
+            subCategories,
             buttons: {
                 save: {
                     onclick: function(event, spaEvent) {
                         App.displayWaitingModal();
+                        let validationError = validateInput(transaction);
+                        if(validationError)
+                        {
+                            App.displayErrorModal(validationError);
+                            return;
+                        }
                         if(id == 0) {
                             transactions.push(transactions);
                             transaction.id = transactions.length;

@@ -682,7 +682,11 @@ function SootheApp(options) {
                 let values = this.splitAttributeValue(attrs.class.value).filter(x => x[0] === event.propName || x[0] === SootheApp.prototype.wildcardChar);
                 values.forEach(attr => {
                     let propValue = attr[2] ? this.resolveInsertionValue(attr[2], event) : event.value !== undefined ? event.value : event.model;
-                    const className = attr[1];
+                    let className = attr[1];
+                    if(!attr[1]) {
+                        className = propValue;
+                        propValue = true;
+                    }
                     if(!target.classList.contains(className) == propValue)
                     {
                         target.classList.toggle(className, propValue);
