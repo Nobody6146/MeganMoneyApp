@@ -36,6 +36,7 @@ Storage.clearCache = function() {
         info: null,
         settings: null,
         labels: null,
+        transactions: null,
     };
 }
 Storage.getInfo = function(){
@@ -113,14 +114,11 @@ Storage.getLabels = function(){
     });
 }
 Storage.updateLabels = function(labels) {
-    labels.forEach(x => x.updateDate = new Date().toISOString());
     Storage.data.labels = labels;
     return Query.labels.update(labels)
     .then(res => Util.copyObj(res));
 }
 Storage.getTransactions = function(accountingMonth){
-    const date = new Date().toISOString();
-
     return new Promise( (resolve, reject) => {
         if(Storage.data.transactions != null)
         {
@@ -142,7 +140,6 @@ Storage.getTransactions = function(accountingMonth){
     });
 }
 Storage.updateTransactions = function(transactions) {
-    transactions.forEach(x => x.updateDate = new Date().toISOString());
     Storage.data.transactions = transactions;
     return Query.transactions.update(transactions)
     .then(res => Util.copyObj(res));

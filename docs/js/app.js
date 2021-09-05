@@ -41,7 +41,7 @@ function App() {
     addModelProp("newSpreadsheet");
     addModelProp("page");
     App.models.newSpreadsheet.createSpreadsheet = function(domEvent, spaEvent) {
-        const name = spaEvent.model.name;
+        const name = spaEvent.data.name;
         App.displayWaitingModal();
         Spreadsheet.create(name)
         .then(res => {
@@ -272,6 +272,7 @@ App.updateSelection = function(spaEvent) {
     const model = spaEvent.model;
     App.storage.spreadsheet = model.spreadsheet;
     App.storage.month = model.month;
+    Storage.clearCache();
     App.route();
 }
 

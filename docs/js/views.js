@@ -109,8 +109,9 @@ LabelsEditView.prototype.getHTML = function() {
 LabelsEditView.prototype.getData = function(req) {
     const id = req.params.id;
     
-    return Storage.getLabels()
-    .then(labels => {
+    return Promise.all([Storage.getLabels(), Storage.getTransactions(), Storage.getSettings()])
+    .then(res => {
+        const [labels, transactions, settings] = res;
         const label = id == 0 ? new Label() : labels.filter(x => x.id == id)[0];
         const validateInput = function(label) {
             let errors = [];
@@ -121,6 +122,25 @@ LabelsEditView.prototype.getData = function(req) {
             if(label.color == null || label.color === "")
                 errors.push("color is required")
             return errors.length == 0 ? null : errors.join(", ");
+        }
+        const canDeleteLabel = function(label){
+            return new Promise( (resolve, reject) => {
+                let errors = [];
+                transactions.filter(x => x.isActive).forEach(x => {
+                    const sign = (x.transactionType == settings.positiveAmount) ? 1 : -1;
+                    const transaction = "$" + (x.amount * sign) + " on " + x.transactionDate;
+                    if(x.paymentMethodId == label.id)
+                        errors.push('Label is a payment method for transaction: "' + transaction + '"');
+                    if(x.primaryCategoryId == label.id)
+                        errors.push('Label is a primary category for transaction: "' + transaction + '"');
+                    if(x.subCategoryIds.split(" ").map(y => Number.parseInt(y)).includes(label.id))
+                        errors.push('Label is a sub category for transaction: "' + transaction + '"');
+                });
+                if(errors.length == 0)
+                    resolve();
+                else
+                    reject(errors.join("\n"));
+            });
         }
         return {
             label, 
@@ -137,7 +157,10 @@ LabelsEditView.prototype.getData = function(req) {
                         if(id == 0) {
                             labels.push(label);
                             label.id = labels.length;
+                            label.createDate = new Date().toISOString()
                         }
+                        label.updateDate = new Date().toISOString();
+                        label.isActive = true;
                         Storage.updateLabels(labels)
                         .then(res => {
                             App.dismissModals();
@@ -163,7 +186,11 @@ LabelsEditView.prototype.getData = function(req) {
                                     return;
                                 }
                                 label.isActive = false;
-                                Storage.updateLabels(labels)
+                                label.updateDate = new Date().toISOString();
+                                canDeleteLabel(label)
+                                .then(res => {
+                                    return Storage.updateLabels(labels)
+                                })
                                 .then(res => {
                                     App.dismissModals();
                                     window.location = LabelsView.prototype.getRoute()
@@ -204,9 +231,9 @@ TransactionsView.prototype.getData = function(req, res) {
         const [settings, labels, transactions] = res;
         let accountingMonth = Storage.getCurrentAccountingMonth();
         let dateParts = accountingMonth.split("-");
-        let periodTransactions = transactions.filter(x => x.isActive && x.transactionYear == dateParts[0] && x.transactionMonth == dateParts[1]);
+        let periodTransactions = transactions.filter(x => x.isActive && x.accountingMonth == accountingMonth);
         periodTransactions.forEach(x => {
-            const dateParts = new Date(x.transactionDate).toString().split(" ");
+            const dateParts = Util.inputToDate(x.transactionDate).toString().split(" ");
             x.date = dateParts[0] + " " + parseInt(dateParts[2]);
             x.edit = function() {
                 window.location = TransactionsEditView.prototype.getRoute(x.id);
@@ -220,7 +247,7 @@ TransactionsView.prototype.getData = function(req, res) {
             (total, next) => total + (next.transactionTypeId == settings.positiveAmount ? next.amount : - next.amount),
             0
         );
-        dateParts = new Date(accountingMonth).toString().split(" ");
+        dateParts = new Util.inputToDate(accountingMonth).toString().split(" ");
         return {
             accounting: {
                 accountingMonth: dateParts[1] + " " + dateParts[3],
@@ -264,7 +291,7 @@ TransactionsEditView.prototype.getData = function(req) {
                 errors.push("transaction date is required")
             if(transaction.transactionTypeId == null || transaction.transactionTypeId === "")
                 errors.push("transaction type id is required")
-            if(transaction.paymentMethod == null || transaction.paymentMethod === "")
+            if(transaction.paymentMethodId == null || transaction.paymentMethodId === "")
                 errors.push("payment method id is required")
             if(transaction.amount == null || transaction.amount == 0)
                 errors.push("non-zero amount is required")
@@ -274,7 +301,6 @@ TransactionsEditView.prototype.getData = function(req) {
         }
         labels.forEach(x => x.removeCategory = function(event, spaEvent) {
             let model = spaEvent.app.getModel(spaEvent.modelName.substring(0, spaEvent.modelName.lastIndexOf(".")));
-            console.log(model);
             model.splice(spaEvent.varName, 1);
         });
         const labelGroups = {
@@ -314,9 +340,23 @@ TransactionsEditView.prototype.getData = function(req) {
                             return;
                         }
                         if(id == 0) {
-                            transactions.push(transactions);
+                            transactions.push(transaction);
                             transaction.id = transactions.length;
+                            transaction.createDate = new Date().toISOString();
                         }
+                        const date = Util.inputToDate(transaction.transactionDate);
+                        console.log(transaction.transactionDate);
+                        console.log(date);
+                        const dateParts = date.toString().split(" ");
+                        transaction.updateDate = new Date().toISOString();
+                        transaction.isActive = true;
+                        transaction.accountingMonth = date.toISOString().substring(0, 7);
+                        transaction.transactionMonth = dateParts[1];
+                        transaction.transactionDay = date.getDate();
+                        transaction.transactionDayOfTheWeek = dateParts[0];
+                        transaction.transactionYear = date.getFullYear();
+                        transaction.subCategoryIds = subCategories.categories.map(x => x.id).join(" ");
+                        console.log(transaction);
                         Storage.updateTransactions(transactions)
                         .then(res => {
                             App.dismissModals();
@@ -342,6 +382,7 @@ TransactionsEditView.prototype.getData = function(req) {
                                     return;
                                 }
                                 transaction.isActive = false;
+                                transaction.updateDate = new Date().toISOString();
                                 Storage.updateTransactions(transactions)
                                 .then(res => {
                                     App.dismissModals();

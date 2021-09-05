@@ -32,7 +32,7 @@ Spreadsheet.create = function(name) {
         },
         {
             name: "Transactions",
-            columns: ["id","createDate","updateDate","isActive","transactionDate","accountingMonth","transactionMonth","transactionDay","transactionYear","transactionTypeId","paymentMethodId","amount","primaryCategoryId","subCategoryIds","memo"]
+            columns: ["id","createDate","updateDate","isActive","transactionDate","accountingMonth","transactionMonth","transactionDay","transactionDayOfTheWeek","transactionYear","transactionTypeId","paymentMethodId","amount","primaryCategoryId","subCategoryIds","memo"]
         },
         {
             name: "Budgets",
