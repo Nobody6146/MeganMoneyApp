@@ -18,7 +18,7 @@
         <option spa-model="_" spa-property="name value; name innerHTML"></option>
     </datalist>
     <div spa-template="SubCategoryIconTemplate">
-        <div spa-model="_" spa-delete="* evt" spa-event="unbind">
+        <div spa-model="_" spa-delete="* evt" spa-event="* unbind">
             <button style="margin:2px;" spa-model="_" spa-property="name name;name innerText" spa-handler="removeCategory onclick"></button>
         </div>
     </div>
@@ -76,7 +76,7 @@
                     <datalist id="subCategoryList" spa-model="page.data.labels" spa-list="subCategories LabelsListTemplate">
                     </datalist>
                 </form>
-                <div id="subCategories" style="display: flex;" spa-model="page.data.subCategories.categories" spa-component="* SubCategoryIconTemplate" spa-event="bind" spa-append>
+                <div id="subCategories" style="display: flex;" spa-model="page.data.subCategories.categories" spa-component="* SubCategoryIconTemplate" spa-event="* bind" spa-append>
                 </div>
             </td>
         </tr>

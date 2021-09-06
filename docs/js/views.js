@@ -247,7 +247,7 @@ TransactionsView.prototype.getData = function(req, res) {
             (total, next) => total + (next.transactionTypeId == settings.positiveAmount ? next.amount : - next.amount),
             0
         );
-        dateParts = new Util.inputToDate(accountingMonth).toString().split(" ");
+        dateParts = Util.inputToDate(accountingMonth).toString().split(" ");
         return {
             accounting: {
                 accountingMonth: dateParts[1] + " " + dateParts[3],
@@ -257,6 +257,11 @@ TransactionsView.prototype.getData = function(req, res) {
             },
             transactions: periodTransactions,
             buttons: {
+                newTransaction: {
+                    onclick: function(event, spaEvent) {
+                        window.location = TransactionsEditView.prototype.getRoute(0);
+                    }
+                },
                 newTransaction: {
                     onclick: function(event, spaEvent) {
                         window.location = TransactionsEditView.prototype.getRoute(0);
@@ -399,6 +404,63 @@ TransactionsEditView.prototype.getData = function(req) {
                 cancel: {
                     onclick: function(event, spaEvent) {
                         window.location = TransactionsView.prototype.getRoute()
+                    }
+                }
+            }
+        };
+    });
+}
+
+function TransactionsChartsView() {
+    MeganMoneyView.call(this,"Transactions");
+}
+TransactionsChartsView.prototype = Object.create(MeganMoneyView.prototype);
+TransactionsChartsView.prototype.getRoute = function() {
+    return "#transactions/visual";
+}
+TransactionsChartsView.prototype.getHTML = function() {
+   return fetch("views/transactions/index.html");
+}
+TransactionsChartsView.prototype.getData = function(req, res) {
+    return Promise.all([Storage.getSettings(), Storage.getLabels(), Storage.getTransactions()])
+    .then(res => {
+        const [settings, labels, transactions] = res;
+        let accountingMonth = Storage.getCurrentAccountingMonth();
+        let dateParts = accountingMonth.split("-");
+        let periodTransactions = transactions.filter(x => x.isActive && x.accountingMonth == accountingMonth);
+        periodTransactions.forEach(x => {
+            const dateParts = Util.inputToDate(x.transactionDate).toString().split(" ");
+            x.date = dateParts[0] + " " + parseInt(dateParts[2]);
+            x.edit = function() {
+                window.location = TransactionsEditView.prototype.getRoute(x.id);
+            };
+            x.transactionClass = x.transactionTypeId == settings.goodTransaction ? "transaction-good" : "transaction-bad";
+            x.primaryCategory = labels.find(y => y.id == x.primaryCategoryId);
+            x.color = x.primaryCategory.color;
+            x.name = x.primaryCategory.name;
+        });
+        let balance = periodTransactions.reduce(
+            (total, next) => total + (next.transactionTypeId == settings.positiveAmount ? next.amount : - next.amount),
+            0
+        );
+        dateParts = Util.inputToDate(accountingMonth).toString().split(" ");
+        return {
+            accounting: {
+                accountingMonth: dateParts[1] + " " + dateParts[3],
+                balance,
+                transactionClass: (balance < 0 === settings.goodTransaction < 0) || (balance >= 0 === settings.goodTransaction >= 0)
+                    ? "transaction-good" : "transaction-bad"
+            },
+            transactions: periodTransactions,
+            buttons: {
+                newTransaction: {
+                    onclick: function(event, spaEvent) {
+                        window.location = TransactionsEditView.prototype.getRoute(0);
+                    }
+                },
+                newTransaction: {
+                    onclick: function(event, spaEvent) {
+                        window.location = TransactionsEditView.prototype.getRoute(0);
                     }
                 }
             }

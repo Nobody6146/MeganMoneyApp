@@ -456,7 +456,19 @@ function SootheApp(options) {
         }
         if(!this.passesDefinitiveCheck(attrs, event))
             return;
-        if(!attrs.evt || attrs.evt.value.split(' ').find(x => x === event.type) !== undefined)
+        let handleEvent = true; //!attrs.evt || attrs.evt.value.split(' ').find(x => x === event.type) !== undefined
+        if(attrs.evt)
+        {
+            let respondTo = [];
+            paramList = this.splitAttributeValue(attrs.evt.value);
+            paramList.forEach(params => {
+                const [propName, eventType] = params;
+                if(propName == event.propName || propName == SootheApp.prototype.wildcardChar)
+                    respondTo.push(eventType);
+            });
+            handleEvent = respondTo.length == 0 || respondTo.includes(event.type);
+        }
+        if(handleEvent)
         {
             if(attrs.hdlr) {
                 const app = this;
@@ -628,7 +640,6 @@ function SootheApp(options) {
                 let values = this.splitAttributeValue(attrs.del.value);
                 let propValue = event.value != undefined ? event.value : event.model;
                 let props = values[0];
-                console.log(props);
                 let del = false;
                 if(props[1] === SootheApp.prototype.eventModifier)
                     del = true;

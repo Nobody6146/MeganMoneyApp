@@ -23,7 +23,7 @@ Query.get = function(range, valueRenderOption = "UNFORMATTED_VALUE", spreadsheet
     });
     
 }
-Query.update = function(range, values, valueInputOption = "USER_ENTERED", spreadsheetId = App.storage.spreadsheet) {
+Query.update = function(range, values, valueInputOption = "RAW", spreadsheetId = App.storage.spreadsheet) {
     const valueRange = {
         range: range,
         majorDimension: "ROWS",
@@ -39,7 +39,7 @@ Query.update = function(range, values, valueInputOption = "USER_ENTERED", spread
         });
     });
 }
-Query.insert = function(range, values, valueInputOption = "USER_ENTERED", insertDataOption = "INSERT_ROWS", spreadsheetId = App.storage.spreadsheet) {
+Query.insert = function(range, values, valueInputOption = "RAW", insertDataOption = "INSERT_ROWS", spreadsheetId = App.storage.spreadsheet) {
     const valueRange = {
         range: range,
         majorDimension: "ROWS",
