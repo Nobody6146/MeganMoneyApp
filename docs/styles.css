@@ -7,7 +7,9 @@
   --theme-color-neutral: #eeeeee;
   --theme-color-compliment: #cccccc;
   --theme-color-contrast: #444444;
-  --theme-color-accent: rgba(0,0,255, 1);
+  --theme-color-accent: royalblue;
+  /* --theme-color-accent: royalblue;
+  --theme-color-accent-2: yellowgreen; */
 }
 
 ul {
@@ -139,6 +141,7 @@ body {
   box-shadow: 0 0 3px rgba(68, 68, 68, 0.5);
   height: 60px;
   text-align: center;
+  z-index: 1;
 }
 .selection-clickoff {
   position: absolute;
@@ -352,8 +355,9 @@ body {
 
 /*Labels*/
 .labels-display {
-  width: 60px;
+  width: 75px;
   height: 20px;
+  border-radius: 20px;
 }
 
 .text-money::before {
@@ -366,4 +370,29 @@ body {
 
 .transaction-bad {
   color: red;
+}
+
+.button-new {
+  position: fixed;
+  bottom: var(--nav-height);
+  right: 0;
+  margin: 10px;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+
+  font-size: xx-large;
+}
+
+.button-accent {
+  border: none;
+  color: white;
+  background-color: var(--theme-color-accent);
+  font-weight: bold;
+  font-stretch: extra-expanded;
+  box-shadow: 0 0 3px rgba(68, 68, 68, 0.5);
+}
+
+td {
+  padding: 5px 15px;
 }

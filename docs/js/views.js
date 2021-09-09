@@ -84,7 +84,7 @@ LabelsView.prototype.getData = function(req, res) {
             };
         });
         return {
-            labels: res.filter(x => x.isActive),
+            labels: res.filter(x => x.isActive).sort((x, y) => x.name < y.name ? -1 : 1),
             buttons: {
                 newLabel: {
                     onclick: function(event, spaEvent) {
@@ -231,8 +231,17 @@ TransactionsView.prototype.getData = function(req, res) {
         const [settings, labels, transactions] = res;
         let accountingMonth = Storage.getCurrentAccountingMonth();
         let dateParts = accountingMonth.split("-");
-        let periodTransactions = transactions.filter(x => x.isActive && x.accountingMonth == accountingMonth);
-        periodTransactions.forEach(x => {
+        const activeTransactions = transactions.filter(x => x.isActive)
+            .sort((x, y) => x.transactionDate > y.transactionDate ? 1 : x.transactionDate < y.transactionDate ? - 1 : x.id < y.id ? -1 : 1);
+        let periodTransactions = activeTransactions.filter(x => x.accountingMonth == accountingMonth);
+        let accountBalance = 0;
+        for(let i = 0; i < activeTransactions.length; i++)
+        {
+            let x = periodTransactions[i];
+            x.amount = x.transactionTypeId == settings.positiveAmount ? Number.parseFloat(x.amount) : - Number.parseFloat(x.amount)
+            accountBalance += x.amount;
+            if(x.accountingMonth != accountingMonth)
+                continue;
             const dateParts = Util.inputToDate(x.transactionDate).toString().split(" ");
             x.date = dateParts[0] + " " + parseInt(dateParts[2]);
             x.edit = function() {
@@ -240,22 +249,24 @@ TransactionsView.prototype.getData = function(req, res) {
             };
             x.transactionClass = x.transactionTypeId == settings.goodTransaction ? "transaction-good" : "transaction-bad";
             x.primaryCategory = labels.find(y => y.id == x.primaryCategoryId);
-            x.color = x.primaryCategory.color;
+            x.paymentMethod = labels.find(y => y.id == x.paymentMethodId);
+            x.primaryCategoryColor = x.primaryCategory.color;
+            x.primaryCategoryName = x.primaryCategory.name;
+            x.paymentMethodColor = x.paymentMethod.color;
+            x.paymentMethodName = x.paymentMethod.name;
             x.name = x.primaryCategory.name;
-        });
-        let balance = periodTransactions.reduce(
-            (total, next) => total + (next.transactionTypeId == settings.positiveAmount ? next.amount : - next.amount),
-            0
-        );
+            x.accountBalance = accountBalance.toFixed(2);
+            x.description = x.memo != null && x.memo != "" ? x.memo : x.paymentMethod.name;
+        }
         dateParts = Util.inputToDate(accountingMonth).toString().split(" ");
         return {
             accounting: {
                 accountingMonth: dateParts[1] + " " + dateParts[3],
-                balance,
-                transactionClass: (balance < 0 === settings.goodTransaction < 0) || (balance >= 0 === settings.goodTransaction >= 0)
+                balance: accountBalance.toFixed(2),
+                transactionClass: (accountBalance < 0 === settings.goodTransaction < 0) || (accountBalance >= 0 === settings.goodTransaction >= 0)
                     ? "transaction-good" : "transaction-bad"
             },
-            transactions: periodTransactions,
+            transactions: periodTransactions.sort((x, y) => x.transactionDate > y.transactionDate ? -1 : x.transactionDate < y.transactionDate ? 1 : x.id < y.id ? 1 : -1),
             buttons: {
                 newTransaction: {
                     onclick: function(event, spaEvent) {

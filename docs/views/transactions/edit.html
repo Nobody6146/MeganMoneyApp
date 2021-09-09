@@ -19,7 +19,7 @@
     </datalist>
     <div spa-template="SubCategoryIconTemplate">
         <div spa-model="_" spa-delete="* evt" spa-event="* unbind">
-            <button style="margin:2px;" spa-model="_" spa-property="name name;name innerText" spa-handler="removeCategory onclick"></button>
+            <button style="margin:5px;" spa-model="_" spa-property="name name;name innerText" spa-handler="removeCategory onclick"></button>
         </div>
     </div>
 </div>
@@ -81,16 +81,20 @@
             </td>
         </tr>
         <tr>
-            <td>Memo</td>
+            <td style="vertical-align: top;">Memo</td>
             <td>
-                <input type="text" spa-model="page.data.transaction" spa-property="memo value" spa-input="memo value" />
+                <textarea type="text" style="min-height: 50px;" spa-model="page.data.transaction" spa-property="memo value" spa-input="memo value"></textarea>
             </td>
         </tr>
     </tbody>
 </table>
 
-<div style="width: 100%; display: flex; justify-content: space-around;">
-    <button spa-model="page.data.buttons.cancel" spa-handler="onclick onclick">Cancel</button>
-    <button spa-model="page.data.buttons.delete" spa-handler="onclick onclick">Delete</button>
-    <button spa-model="page.data.buttons.save" spa-handler="onclick onclick">Save</button>
+<br />
+
+<div style="display: flex; justify-content: center; width: 100%;">
+    <div style="display: flex; justify-content: center;">
+        <button class="button-accent" style="margin: 0 10px" spa-model="page.data.buttons.cancel" spa-handler="onclick onclick">Cancel</button>
+        <button class="button-accent" style="margin: 0 10px" spa-model="page.data.buttons.delete" spa-handler="onclick onclick">Delete</button>
+        <button class="button-accent" style="margin: 0 10px" spa-model="page.data.buttons.save" spa-handler="onclick onclick">Save</button>
+    </div>
 </div>

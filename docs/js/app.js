@@ -35,6 +35,7 @@ function App() {
         });
     }
 
+    addModelProp("theme");
     addModelProp("user");
     addModelProp("spreadsheets");
     addModelProp("currentSelection");
@@ -223,6 +224,10 @@ App.signedIn = async function(user) {
         App.models.spreadsheets = {
             list: null,
             selectedId: Storage.getCurrentSpreadsheet()
+        };
+        const settings = await Storage.getSettings();
+        App.models.theme = {
+            primaryColor: settings.themePrimaryColor
         };
         await App.updateSheetsList();
         App.route();

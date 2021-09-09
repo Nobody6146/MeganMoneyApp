@@ -177,7 +177,8 @@ Spreadsheet.create = function(name) {
             return Storage.updateSettings([
                 {
                     positiveAmount: 1,
-                    goodTransaction: 1
+                    goodTransaction: 1,
+                    themePrimaryColor: "royalblue"
                 }
             ]);
         })
