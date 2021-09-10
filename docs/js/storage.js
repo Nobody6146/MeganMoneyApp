@@ -19,7 +19,11 @@ Storage.setCurrentSpreadsheet = function(spreadsheetId) {
     return localStorage.setItem(Storage.keys.CURRENT_SPREADSHEET, spreadsheetId);
 }
 Storage.getCurrentAccountingMonth = function() {
-    return localStorage.getItem(Storage.keys.CURRENT_AccountingMonth);
+    let accountingMonth = localStorage.getItem(Storage.keys.CURRENT_AccountingMonth);
+    if(accountingMonth)
+        return accountingMonth;
+    const date = new Date();
+    return Storage.setCurrentAccountingMonth(date.getFullYear() + "-" + date.getMonth());
 }
 Storage.setCurrentAccountingMonth = function(mmyy) {
     return localStorage.setItem(Storage.keys.CURRENT_AccountingMonth, mmyy);

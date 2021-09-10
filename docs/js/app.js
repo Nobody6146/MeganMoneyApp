@@ -225,11 +225,16 @@ App.signedIn = async function(user) {
             list: null,
             selectedId: Storage.getCurrentSpreadsheet()
         };
-        const settings = await Storage.getSettings();
-        App.models.theme = {
-            primaryColor: settings.themePrimaryColor
-        };
+
+        
         await App.updateSheetsList();
+        try{
+            const settings = await Storage.getSettings();
+            App.models.theme = {
+                primaryColor: settings.themePrimaryColor
+            };
+        }
+        catch{}
         App.route();
     }
     catch(err)
@@ -273,11 +278,19 @@ App.updateSheetsList = async function() {
     });
 }
 
-App.updateSelection = function(spaEvent) {
+App.updateSelection = async function(spaEvent) {
     const model = spaEvent.model;
     App.storage.spreadsheet = model.spreadsheet;
     App.storage.month = model.month;
     Storage.clearCache();
+
+    try{
+        const settings = await Storage.getSettings();
+        App.models.theme = {
+            primaryColor: settings.themePrimaryColor
+        };
+    }
+    catch{}
     App.route();
 }
 

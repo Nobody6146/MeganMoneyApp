@@ -50,6 +50,16 @@ LoginView.prototype.getRoute = function() {
 LoginView.prototype.getHTML = function() {
     return fetch("views/home/login.html");
 }
+LoginView.prototype.getData = function() {
+    const data = {
+        onsubmit: function(event, spaEvent) {
+            event.preventDefault();
+            // alert();
+            alert("that worked");
+        }
+    }
+    return Promise.resolve(data);
+}
 
 //============ Dashboard ============//
 function DashboardView() {
@@ -337,6 +347,7 @@ TransactionsEditView.prototype.getData = function(req) {
                 return;
             if(spaEvent.data.categories.findIndex(x => x.id == label.id) !== -1)
                 return;
+                alert("added label: " + label.id);
             spaEvent.model.categories.push(label);
         }
         subCategories.addSubCategory = addSubCategory;

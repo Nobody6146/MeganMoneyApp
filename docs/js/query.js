@@ -2,6 +2,8 @@ function Query() {
 
 }
 Query.get = function(range, valueRenderOption = "UNFORMATTED_VALUE", spreadsheetId = App.storage.spreadsheet) {
+    if(!spreadsheetId)
+        return Promise.resolve([]);
     return new Promise( (resolve, reject) => {
         gapi.client.sheets.spreadsheets.values.get({spreadsheetId, range: range, valueRenderOption})
         .then(res => {
@@ -24,6 +26,8 @@ Query.get = function(range, valueRenderOption = "UNFORMATTED_VALUE", spreadsheet
     
 }
 Query.update = function(range, values, valueInputOption = "RAW", spreadsheetId = App.storage.spreadsheet) {
+    if(!spreadsheetId)
+        return Promise.resolve([]);
     const valueRange = {
         range: range,
         majorDimension: "ROWS",
