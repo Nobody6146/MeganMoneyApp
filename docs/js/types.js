@@ -22,7 +22,15 @@ Enums.budgetTrackingType = [
     {type: "budgetTrackingType", name: "Increase", value: 1},
     {type: "budgetTrackingType", name: "Decrease", value: 1}
 ];
-
+Enums.importSettingType = [
+    {type: "importSettingType", name: "Category", value: 1},
+    {type: "importSettingType", name: "SubCategory", value: 2},
+    {type: "importSettingType", name: "PaymentMethod", value: 3},
+    {type: "importSettingType", name: "TransactionDate", value: 4},
+    {type: "importSettingType", name: "TransactionType", value: 5},
+    {type: "importSettingType", name: "Amount", value: 6},
+    {type: "importSettingType", name: "Memo", value: 7},
+]
 function Setting() {
     this.id = 0;
     this.createDate = new Date().toISOString();
@@ -38,7 +46,7 @@ function Label() {
     this.updateDate = new Date().toISOString();
     this.isActive = true;
     this.name = "";
-    this.color = "";
+    this.color = "#000000";
     this.paymentMethod = true;
     this.primaryCategory = true;
     this.subCategory = true;

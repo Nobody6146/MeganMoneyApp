@@ -50,16 +50,6 @@ LoginView.prototype.getRoute = function() {
 LoginView.prototype.getHTML = function() {
     return fetch("views/home/login.html");
 }
-LoginView.prototype.getData = function() {
-    const data = {
-        onsubmit: function(event, spaEvent) {
-            event.preventDefault();
-            // alert();
-            alert("that worked");
-        }
-    }
-    return Promise.resolve(data);
-}
 
 //============ Dashboard ============//
 function DashboardView() {
@@ -241,17 +231,21 @@ TransactionsView.prototype.getData = function(req, res) {
         const [settings, labels, transactions] = res;
         let accountingMonth = Storage.getCurrentAccountingMonth();
         let dateParts = accountingMonth.split("-");
-        const activeTransactions = transactions.filter(x => x.isActive)
+        const activeTransactions = transactions.filter(x => x.isActive && x.accountingMonth <= accountingMonth)
             .sort((x, y) => x.transactionDate > y.transactionDate ? 1 : x.transactionDate < y.transactionDate ? - 1 : x.id < y.id ? -1 : 1);
         let periodTransactions = activeTransactions.filter(x => x.accountingMonth == accountingMonth);
         let accountBalance = 0;
+        let priorBalance = 0;
         for(let i = 0; i < activeTransactions.length; i++)
         {
-            let x = periodTransactions[i];
+            let x = activeTransactions[i];
             x.amount = x.transactionTypeId == settings.positiveAmount ? Number.parseFloat(x.amount) : - Number.parseFloat(x.amount)
             accountBalance += x.amount;
             if(x.accountingMonth != accountingMonth)
+            {
+                priorBalance = accountBalance;
                 continue;
+            }
             const dateParts = Util.inputToDate(x.transactionDate).toString().split(" ");
             x.date = dateParts[0] + " " + parseInt(dateParts[2]);
             x.edit = function() {
@@ -268,15 +262,35 @@ TransactionsView.prototype.getData = function(req, res) {
             x.accountBalance = accountBalance.toFixed(2);
             x.description = x.memo != null && x.memo != "" ? x.memo : x.paymentMethod.name;
         }
+
+        periodTransactions = periodTransactions.sort((x, y) => x.transactionDate > y.transactionDate ? -1 : x.transactionDate < y.transactionDate ? 1 : x.id < y.id ? 1 : -1);
+        let transactionGroups = {};
+        periodTransactions.forEach(x => {
+            let group = transactionGroups[x.date];
+            if(group === undefined)
+            {
+                group = {label: x.date, transactions: []};
+                transactionGroups[x.date] = group;
+            }
+            group.transactions.push(x);
+        });
+
         dateParts = Util.inputToDate(accountingMonth).toString().split(" ");
+        let balanceGrowth = (accountBalance - priorBalance);
         return {
             accounting: {
                 accountingMonth: dateParts[1] + " " + dateParts[3],
                 balance: accountBalance.toFixed(2),
+                priorBalance: priorBalance.toFixed(2),
+                balanceGrowth: balanceGrowth.toFixed(2),
+                balanceGrowthPercent: (balanceGrowth/priorBalance * 100).toFixed(2),
+                growthClass: (balanceGrowth < 0 === settings.goodTransaction < 0) || (balanceGrowth >= 0 === settings.goodTransaction >= 0)
+                    ? "transaction-good" : "transaction-bad",
                 transactionClass: (accountBalance < 0 === settings.goodTransaction < 0) || (accountBalance >= 0 === settings.goodTransaction >= 0)
                     ? "transaction-good" : "transaction-bad"
             },
             transactions: periodTransactions.sort((x, y) => x.transactionDate > y.transactionDate ? -1 : x.transactionDate < y.transactionDate ? 1 : x.id < y.id ? 1 : -1),
+            transactionGroups: transactionGroups,
             buttons: {
                 newTransaction: {
                     onclick: function(event, spaEvent) {
@@ -340,14 +354,15 @@ TransactionsEditView.prototype.getData = function(req) {
         };
         const addSubCategory = function(event, spaEvent) {
             event.preventDefault();
-            // alert();
             let label = labelGroups.subCategories.find(x => x.name == spaEvent.model.selected);
-            spaEvent.model.selected = null;
             if(!label)
+            {
+                label = new Label();
+                label.name = spaEvent.data.selected;
+            }
+            spaEvent.model.selected = null;
+            if(spaEvent.data.categories.findIndex(x => x.name == label.name) !== -1)
                 return;
-            if(spaEvent.data.categories.findIndex(x => x.id == label.id) !== -1)
-                return;
-                alert("added label: " + label.id);
             spaEvent.model.categories.push(label);
         }
         subCategories.addSubCategory = addSubCategory;
@@ -358,7 +373,7 @@ TransactionsEditView.prototype.getData = function(req) {
             subCategories,
             buttons: {
                 save: {
-                    onclick: function(event, spaEvent) {
+                    onclick: async function(event, spaEvent) {
                         App.displayWaitingModal();
                         let validationError = validateInput(transaction);
                         if(validationError)
@@ -366,14 +381,34 @@ TransactionsEditView.prototype.getData = function(req) {
                             App.displayErrorModal(validationError);
                             return;
                         }
+
+                        //If we created any new labels on the fly, add them
+                        let newLabels = subCategories.categories.filter(x => x.id == 0);
+                        if(newLabels)
+                        {
+                            newLabels.forEach(x => {
+                                let label = new Label();
+                                label.id = labels.length + 1;
+                                label.name = x.name;
+                                label.createDate = new Date().toISOString()
+                                label.updateDate = new Date().toISOString();
+                                labels.push(label);
+                                x.id = label.id;
+                            });
+                            try{
+                                await Storage.updateLabels(labels);
+                            } 
+                            catch(err){
+                                App.logError(err);
+                            }
+                        }
+                        
                         if(id == 0) {
                             transactions.push(transaction);
                             transaction.id = transactions.length;
                             transaction.createDate = new Date().toISOString();
                         }
                         const date = Util.inputToDate(transaction.transactionDate);
-                        console.log(transaction.transactionDate);
-                        console.log(date);
                         const dateParts = date.toString().split(" ");
                         transaction.updateDate = new Date().toISOString();
                         transaction.isActive = true;
@@ -383,7 +418,6 @@ TransactionsEditView.prototype.getData = function(req) {
                         transaction.transactionDayOfTheWeek = dateParts[0];
                         transaction.transactionYear = date.getFullYear();
                         transaction.subCategoryIds = subCategories.categories.map(x => x.id).join(" ");
-                        console.log(transaction);
                         Storage.updateTransactions(transactions)
                         .then(res => {
                             App.dismissModals();

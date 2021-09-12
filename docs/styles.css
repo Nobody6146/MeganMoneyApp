@@ -269,7 +269,7 @@ body {
 
 .modal-header h3 {
   margin: 0px;
-  color: var(--theme-color-contrast);
+  color: var(--theme-color-accent);
 }
 
 .modal-body {
@@ -360,8 +360,17 @@ body {
   border-radius: 20px;
 }
 
+.labels-transaction {
+  width: 5px;
+  /* height: 100%; */
+}
+
 .text-money::before {
   content: "$";
+}
+
+.text-percent::after {
+  content: "%";
 }
 
 .transaction-good {

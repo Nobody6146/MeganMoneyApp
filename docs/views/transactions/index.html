@@ -2,21 +2,21 @@
     <table>
         <tbody spa-template="TransactionListTemplate">
             <tr spa-model="_" spa-handler="edit onclick;">
-                <td style="padding: 5px 15px;">
+                <td style="padding: 5px 15px; width: 80%;">
                     <div spa-model="_" >
-                        <div>
-                            <span spa-model="_" spa-property="date innerHTML"></span>
+                        <div spa-model="_" spa-property="primaryCategoryColor style {{border-bottom: 2px solid {{value}}}}">
+                            <div style="display: flex;">
+                                <div class="labels-transaction" spa-model="_" spa-property="primaryCategoryColor style {{background-color: {{value}}}}">
+
+                                </div>
+                                <div spa-model="_" spa-property="primaryCategoryName innerHTML;"></div>
+                            </div>
                         </div>
                         <div>
                             <i style="font-stretch: condensed; overflow: hidden; text-overflow: ellipsis;" spa-model="_" spa-property="description innerHTML"></i>
                         </div>
                     </div>
                     
-                </td>
-                <td style="padding: 5px 15px;">
-                    <div spa-model="_" spa-property="primaryCategoryColor style {{border-bottom: 2px solid {{value}}}}">
-                        <div class="labels-display" spa-model="_" spa-property="primaryCategoryName innerHTML;"></div>
-                    </div>
                 </td>
                 <td style="padding: 5px 15px;">
                     <div style="text-align: right;">
@@ -31,7 +31,17 @@
             </tr>
         </tbody>
     </table>
-    
+    <div spa-template="TransactionGroupTemplate">
+        <div>
+            <div style="width: 100%; box-sizing: border-box; color: var(--theme-color-neutral); background-color: var(--theme-color-contrast);">
+                <span spa-model="_" spa-property="label innerHTML"></span>
+            </div>
+            <table>
+                <tbody spa-model="_" spa-list="transactions TransactionListTemplate">
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <div style="width: 100%; position: fixed; background-color: var(--theme-color-background);">
@@ -40,7 +50,16 @@
             <h2 style="font-weight: normal; font-style: italic; margin: 0 0 3px 0;" spa-model="page.data.accounting" spa-property="accountingMonth innerHTML"></h2>
         </div>
         <div style="width: 100%; text-align: center;">
-            <h3 style=" margin: 3px 0 0 0;" class="text-money" spa-model="page.data.accounting" spa-property="balance innerHTML" spa-class="transactionClass"></h3>
+            <h3 style=" margin: 3px 0 0 0;">
+                <span class="text-money" spa-model="page.data.accounting" spa-property="balance innerHTML" spa-class="transactionClass"></span>
+                <span style="font-size: medium; font-style: normal; ">
+                    &nbsp;(
+                    <span style="margin: 3px 0 0 0;" class="text-money" spa-model="page.data.accounting" spa-property="balanceGrowth innerHTML" spa-class="growthClass"></span>
+                    &nbsp;,
+                    <span style=" margin: 3px 0 0 0;" class="text-percent" spa-model="page.data.accounting" spa-property="balanceGrowthPercent innerHTML" spa-class="growthClass"></span>
+                    )
+                </span>
+        </h3>
         </div>
     </div>
     
@@ -54,12 +73,15 @@
 </div>
 
 <div style="margin-top: 175px;">
-    <table style="width: 100%; box-sizing: border-box; margin-top: 20px;">
+    <!-- <table style="width: 100%; box-sizing: border-box; margin-top: 20px;">
         <thead></thead>
         <tbody spa-model="page.data" spa-list="transactions TransactionListTemplate">
         </tbody>
-    </table>
-    
+    </table> -->
+    <div spa-model="page.data" spa-dictionary="transactionGroups TransactionGroupTemplate">
+
+    </div>
+
     <!-- <div style="width: 100%; position: fixed; bottom: 20vh; display: flex; justify-content: center;">
         <button style="margin: 0 5px;" spa-model="page.data.buttons.newTransaction" spa-handler="onclick onclick">Charts</button>
         <button style="margin: 0 5px;" spa-model="page.data.buttons.charts" spa-handler="onclick onclick">+</button>

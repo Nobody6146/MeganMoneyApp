@@ -740,6 +740,7 @@ function SootheApp(options) {
         }
     }
     this.splitAttributeValue = function(value) {
+        //return value.split(/({{.+}})?;/).filter(x => x !== undefined).map(x => { 
         return value.split(';').map(x => { 
             //return x.trim().split(/\s+/)
             let baseParams = x.trim();
