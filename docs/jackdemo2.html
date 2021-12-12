@@ -1,0 +1,52 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <script src="lib/soothe.js"></script>
+        <style>
+            span {
+                color: blue;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div>
+            <h3>Edit</h3>
+            <input placeholder="First Name" spa-model="state" spa-property="firstName value" spa-input="firstName value" />
+            <input placeholder="Last Name" spa-model="state" spa-property="lastName value" spa-input="lastName value"/>
+            <input placeholder="Hobby" spa-model="state" spa-property="hobby value" spa-input="hobby value" />
+            <button spa-model="state" spa-handler="saveCallback onclick">Save</button>
+        </div>
+        <div>
+            <h3>Preview</h3>
+            <p>
+                Hello, my name is
+                <span spa-model="state" spa-property="firstName innerHTML">First Name</span>
+                <span spa-model="state" spa-property="lastName innerHTML">Last Name</span>
+                I enjoy doing 
+                <span spa-model="state" spa-property="hobby innerHTML">Hobby</span>.
+            </p>
+        </div>
+        <script>
+            function saveProfile(data) {
+                localStorage.setItem("profile", JSON.stringify(data));
+                alert(`${data.firstName} ${data.lastName} successfully update their profile.`)
+            }
+
+            let app = new SootheApp();
+            let data = localStorage.getItem("profile");
+            let state = data ? 
+                JSON.parse(data) : {
+                firstName: "Joe",
+                lastName: "Smith",
+                hobby: "swimming"
+            }
+            state.saveCallback = function(event, modelEvent) {
+                saveProfile(modelEvent.data);
+            }
+            let model = app.bindModel("state", state);
+
+        </script>
+    </body>
+</html>

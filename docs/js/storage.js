@@ -33,7 +33,8 @@ Storage.data = {
     info: null,
     settings: null,
     labels: null,
-    transactions: null
+    transactions: null,
+    importSettings: null
 };
 Storage.clearCache = function() {
     Storage.data = {
@@ -41,6 +42,7 @@ Storage.clearCache = function() {
         settings: null,
         labels: null,
         transactions: null,
+        importSettings: null
     };
 }
 Storage.getInfo = function(){
@@ -146,5 +148,26 @@ Storage.getTransactions = function(accountingMonth){
 Storage.updateTransactions = function(transactions) {
     Storage.data.transactions = transactions;
     return Query.transactions.update(transactions)
+    .then(res => Util.copyObj(res));
+}
+
+Storage.getImportSettings = function(){
+    return new Promise( (resolve, reject) => {
+        if(Storage.data.importSettings != null) 
+        {
+            resolve(Util.copyObj(Storage.data.importSettings));
+            return;
+        }
+        Query.importSettings.get()
+        .then(res => {
+            Storage.data.importSettings = res;
+            resolve(Util.copyObj(res));
+        })
+        .catch(err => reject(err));
+    });
+}
+Storage.updateImportSettings = function(importSettings) {
+    Storage.data.importSettings = importSettings;
+    return Query.importSettings.update(importSettings)
     .then(res => Util.copyObj(res));
 }

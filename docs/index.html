@@ -67,7 +67,7 @@
             </nav>
             <div class="selectionMenu" onclick="">
                 <div class="selection-clickoff" onclick="App.showTopMenu();" ></div>
-                <div spa-model="currentSelection" spa-function="* App.updateSelection" spa-event="* set">
+                <div spa-model="currentSelection" spa-callback="* updateSelection" spa-event="* set">
                     <div>
                         Date
                         <input class="date-picker-input" type="month" spa-model="currentSelection" spa-property="month value" spa-input="month value">

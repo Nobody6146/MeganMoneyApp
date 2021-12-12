@@ -1,0 +1,33 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <script src="lib/soothe.js"></script>
+    </head>
+
+    <body>
+        <div>
+            <h2>Profile Edit</h2>
+            <div>
+                <input placeholder="First Name" spa-model="state" spa-property="firstName value" spa-input="firstName value"
+                    spa-callback="firstName validateInput">
+                <input placeholder="Last Name" spa-model="state" spa-property="lastName value" spa-input="lastName value"
+                    spa-callback="lastName validateInput">
+                <button spa-model="state" spa-handler="saveCallback onclick" spa-toggle="disabled disabled">save</button>
+            </div>
+        </div>
+        <script>
+            var app = new SootheApp();
+            let state = app.bindModel("state", {});
+            state.saveCallback = function (event, modelEvent) {
+                const data = modelEvent.data;
+                console.log(`Saved profile for: ${data.firstName} ${data.lastName}`);
+            }
+            state.validateInput = function (modelEvent) {
+                const data = modelEvent.data;
+                modelEvent.model.disabled = data.firstName == null || data.firstName == "" || data.lastName == null || data.lastName == "";
+            }
+            state.validateInput();
+        </script>
+    </body>
+</html>

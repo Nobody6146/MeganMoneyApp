@@ -7,7 +7,7 @@ SootheApp.prototype.templateBindAttr = "spa-template";
 SootheApp.prototype.compBindAttr = "spa-component";
 SootheApp.prototype.listBindAttr = "spa-list";
 SootheApp.prototype.dictBindAttr = "spa-dictionary";
-SootheApp.prototype.funcBindAttr = "spa-function";
+SootheApp.prototype.funcBindAttr = "spa-callback"; //Calls a property function
 SootheApp.prototype.evtBindAttr = "spa-event";
 SootheApp.prototype.staticBindAttr = "spa-static";
 SootheApp.prototype.routeBindAttr = "spa-route";
@@ -22,6 +22,7 @@ SootheApp.prototype.handlerBindAttr = "spa-handler"; //Fires a callback when the
 SootheApp.prototype.triggerEventBindAttr = "spa-trigger"; //Triggers a spa dom event 
 SootheApp.prototype.toggleClassBindAttr = "spa-class"; //Toggles the inclusion of a class to an element
 SootheApp.prototype.appendBindAttr = "spa-append"; //Tells a component to append a value rather than replace it
+SootheApp.prototype.scriptBindAttr = "spa-script"; //Sets a model property equal to the innerText of the element
 
 SootheApp.prototype.wildcardChar = "*";
 SootheApp.prototype.insertionChar = "_";
@@ -470,29 +471,6 @@ function SootheApp(options) {
         }
         if(handleEvent)
         {
-            if(attrs.hdlr) {
-                const app = this;
-                const modelName = event.modelName;
-                let data = event.data;
-                let paramList = this.splitAttributeValue(attrs.hdlr.value);
-                paramList.forEach(params => {
-                    const propName = params[0];
-                    if(propName !== event.propName)
-                        return;
-                    let handlerName = params[1];
-                    let handler = null;
-                    if(data != null && typeof data === "object")
-                    {
-                        let modelHandler = data[propName];
-                        if(typeof modelHandler === "function")
-                            handler = (domEvent) => {
-                                let spaEvent = new SootheModelEvent(app.getModel(modelName), modelName, propName, null, "handler", domEvent.target, null, app);
-                                modelHandler(domEvent, spaEvent);
-                            };
-                    }
-                    target[handlerName] = handler;
-                });
-            }
             if(attrs.attr)
             {
                 let values = this.splitAttributeValue(attrs.attr.value).filter(x => x[0] === event.propName || x[0] === SootheApp.prototype.wildcardChar);
@@ -514,6 +492,47 @@ function SootheApp(options) {
                         target.toggleAttribute(attr[1], propValue);
                     }
                     triggered = true;
+                });
+            }
+            if(attrs.script) {
+                const app = this;
+                const modelName = event.modelName;
+                const data = event.data;
+                let paramList = this.splitAttributeValue(attrs.script.value);
+                paramList.forEach(params => {
+                    const propName = params[0];
+                    if(propName !== event.propName && propName !== SootheApp.prototype.wildcardChar)
+                        return;
+                    let handlerName = params[1];
+                    let handler = null;
+                    if(data != null && typeof data === "object")
+                    {
+                        let func = new Function("'use strict'; return " + target.innerText.trim());
+                        event.model[handlerName] = func();
+                    }
+                });
+            }
+            if(attrs.hdlr) {
+                const app = this;
+                const modelName = event.modelName;
+                let data = event.data;
+                let paramList = this.splitAttributeValue(attrs.hdlr.value);
+                paramList.forEach(params => {
+                    const propName = params[0];
+                    if(propName !== event.propName)
+                        return;
+                    let handlerName = params[1];
+                    let handler = null;
+                    if(data != null && typeof data === "object")
+                    {
+                        let modelHandler = data[propName];
+                        if(typeof modelHandler === "function")
+                            handler = (domEvent) => {
+                                let spaEvent = new SootheModelEvent(app.getModel(modelName), modelName, propName, null, "handler", domEvent.target, null, app);
+                                modelHandler(domEvent, spaEvent);
+                            };
+                    }
+                    target[handlerName] = handler;
                 });
             }
             if(attrs.prop)
@@ -624,15 +643,27 @@ function SootheApp(options) {
                     args.forEach(attr => {
                         if(attr[0] === event.propName || attr[0] === SootheApp.prototype.wildcardChar)
                         {
-                            try {
-                                let func = window;
-                                attr[1].split(".").forEach(x => func = func[x]);
-                                func(event);
-                            } catch (error) {
-                                console.error(error);
+                            if(event.propName !== SootheApp.prototype.wildcardChar)
+                            {
+                                try {
+                                    let func = event.model[attr[1]];
+                                    if(typeof func === 'function')
+                                        func(event);
+                                } catch (error) {
+                                    console.error(error);
+                                }
                             }
+                            else
+                            {
+                                try {
+                                    let func = event.model;
+                                    func(event);
+                                } catch (error) {
+                                    console.error(error);
+                                }
+                            }
+                            triggered = true;
                         }
-                        triggered = true;
                     });
                 }
             }
@@ -736,7 +767,8 @@ function SootheApp(options) {
             trig: target.attributes[SootheApp.prototype.triggerEventBindAttr],
             class: target.attributes[SootheApp.prototype.toggleClassBindAttr],
             append: target.attributes[SootheApp.prototype.appendBindAttr], 
-            hdlr: target.attributes[SootheApp.prototype.handlerBindAttr], 
+            hdlr: target.attributes[SootheApp.prototype.handlerBindAttr],
+            script: target.attributes[SootheApp.prototype.scriptBindAttr], 
         }
     }
     this.splitAttributeValue = function(value) {
@@ -823,51 +855,6 @@ function SootheApp(options) {
         {childList: true, attributes: true, attributeFilter: SootheApp.prototype.attributes, subtree: true}
     );
     this.root.addEventListener("input", this.inputListener.bind(this));
-    
-    const makeOnEventListener = function(eventName, spa) {
-        const app = spa;
-        const elementEvent = eventName;
-        return function(event) {
-            let target = event.target;
-            
-            while(target != null && (target.attributes == null || target.attributes[SootheApp.prototype.handlerBindAttr] == null))
-                target = target.parentElement;
-            if(target == null)
-                return;
-
-            //Check to prevent default behavior
-            if(target.attributes[SootheApp.prototype.suppressBindAttr] != null)
-            {
-                let paramList = app.splitAttributeValue(target.attributes[SootheApp.prototype.suppressBindAttr].value);
-                for(let i = 0; i < paramList.length; i++)
-                    if(eventName.toLowerCase() == elementEvent.toLowerCase())
-                        event.preventDefault();
-            }
-
-            if(target.attributes[SootheApp.prototype.handlerBindAttr] == null)
-                return;
-                
-            if(target.attributes[SootheApp.prototype.modelBindAttr] == null)
-                return;
-            
-            let paramList = app.splitAttributeValue(target.attributes[SootheApp.prototype.handlerBindAttr].value);
-            for(let i = 0; i < paramList.length; i++)
-            {
-                const params = paramList[i];
-                let propName = params[0];
-                let eventName = params[1];
-                if(eventName != elementEvent)
-                    continue;
-                let modelName = target.attributes[SootheApp.prototype.modelBindAttr].value;
-                let model = app.getModel(modelName);
-                if(model == null || model[propName] == null)
-                    continue;
-                let func = model[propName];
-                let domEvent = new SootheModelEvent(model, modelName, propName, func, "onEvent", target, undefined, app);
-                func(event, domEvent);
-            }
-        }
-    }
 
     let eventsList = ["ontouchstart", "ontouchmove", "ontouchend", "ontouchcancel"];
     //Add even listeners for every "on" event
@@ -876,10 +863,6 @@ function SootheApp(options) {
         if (key.match(/^on(.*)/) && !eventsList.includes(key))
             eventsList.push(key);
     }
-    // eventsList.forEach(key => 
-    //     this.root.addEventListener(key.substr(2), makeOnEventListener(key, this).bind(this))
-    // );
-
     //Start the router
     this.root.addEventListener("click", this.routeListener.bind(this));
     window.addEventListener("popstate", this.historyListener.bind(this));
@@ -931,6 +914,12 @@ SootheApp.prototype.bindModel = function(name, data) {
     let proxy = this.makeProxy(data, name, this, false);
     this.boundModels[name] = proxy;
     return proxy;
+}
+SootheApp.prototype.rebindModel = function(name) {
+    let model = this.getModel(name);
+    if(!model)
+        return;
+    this.refreshModel(model, name, this);
 }
 SootheApp.prototype.unbindModel = function(name) {
     let model = this.getModel(name);
@@ -1029,9 +1018,9 @@ function SootheModelEvent(model, modelName, propName, previousValue, type, targe
         this.value = value;
     }
 
-    let nameParts = modelName.split(".");
-    this.varName = nameParts[nameParts.length - 1];
-    this.rootModelName = nameParts[0];
+    let nameParts = modelName != null ? modelName.split(".") : null;
+    this.varName = nameParts == null ? null : nameParts[nameParts.length - 1];
+    this.rootModelName = nameParts == null ? null : nameParts[0];
 }
 
 function SootheModelListenerOptions(modelName, propName, events, condition, discrete) {
@@ -1080,7 +1069,7 @@ function SootheView() {
 SootheView.prototype.render = function(req, res, next) {
 
     return new Promise( (resolve, reject) => {
-        
+        console.time("render");
         let checkForFetchError = function() {
             if (res && res.ok === false)
                 throw new Error(res.status);
@@ -1159,10 +1148,13 @@ SootheView.prototype.render = function(req, res, next) {
                     viewport.content = 'width=device-width, initial-scale=1, maximum-scale=1';
                 }
             this.finishRendering();
+            console.timeEnd('render');
             resolve();
+            
         })
         .catch(error => {
             this.finishRendering(error);
+            console.timeEnd('render');
             reject(error);
         });
     });

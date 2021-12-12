@@ -91,8 +91,13 @@ Query.transactions = {
         return Query.update("transactions!A2", array.map(x => Object.values(x)));
     }
 }
-Query.importSettings = function() {
+Query.importSettings = {
+    get: function() {
     return Query.get("importSettings");
+    },
+    update: function(array) {
+        return Query.update("importSettings!A2", array.map(x => Object.values(x)));
+    }
 }
 Query.budgets = function() {
     return Query.get("budgets");

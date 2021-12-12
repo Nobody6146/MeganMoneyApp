@@ -33,7 +33,7 @@
     </table>
     <div spa-template="TransactionGroupTemplate">
         <div>
-            <div style="width: 100%; box-sizing: border-box; color: var(--theme-color-neutral); background-color: var(--theme-color-contrast);">
+            <div style="width: 100%; box-sizing: border-box; color: var(--theme-color-neutral); background-color: var(--theme-color-accent);">
                 <span spa-model="_" spa-property="label innerHTML"></span>
             </div>
             <table>
@@ -64,7 +64,7 @@
     </div>
     
     <div style="display: flex; justify-content: center; width: 100%;">
-        <div style="display: flex; justify-content: center; box-sizing: border-box; width: 80%; border-top: 1px solid var(--theme-color-neutral); border-bottom: 1px solid var(--theme-color-contrast); padding: 30px 0;">
+        <div style="display: flex; justify-content: center; box-sizing: border-box; width: 80%; border-top: 1px solid var(--theme-color-neutral); border-bottom: 1px solid var(--theme-color-contrast); padding: 10px 0;">
             <button class="button-accent" style="margin: 0 10px" spa-model="page.data.buttons.charts" spa-handler="onclick onclick">Charts</button>
             <button class="button-accent" style="margin: 0 10px" spa-model="page.data.buttons.import" spa-handler="onclick onclick">Import</button>
             <button class="button-accent" style="margin: 0 10px" spa-model="page.data.buttons.search" spa-handler="onclick onclick">Search</button>
@@ -72,7 +72,7 @@
     </div>
 </div>
 
-<div style="margin-top: 175px;">
+<div style="margin-top: 130px;">
     <!-- <table style="width: 100%; box-sizing: border-box; margin-top: 20px;">
         <thead></thead>
         <tbody spa-model="page.data" spa-list="transactions TransactionListTemplate">

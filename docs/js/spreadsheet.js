@@ -24,7 +24,7 @@ Spreadsheet.create = function(name) {
         },
         {
             name: "ImportSettings",
-            columns: ["id","createDate","updateDate","isActive","profileName","regex","labelTypeId","labelId"]
+            columns: ["id","createDate","updateDate","isActive","profileName", "column", "pattern", "fieldTypeId", "value"]
         },
         {
             name: "Labels",
@@ -32,7 +32,7 @@ Spreadsheet.create = function(name) {
         },
         {
             name: "Transactions",
-            columns: ["id","createDate","updateDate","isActive","transactionDate","accountingMonth","transactionMonth","transactionDay","transactionDayOfTheWeek","transactionYear","transactionTypeId","paymentMethodId","amount","primaryCategoryId","subCategoryIds","memo"]
+            columns: ["id","createDate","updateDate","isActive","transactionDate","accountingMonth","transactionMonth","transactionDay","transactionDayOfTheWeek","transactionYear","transactionTypeId","paymentMethodId","amount","primaryCategoryId","subCategoryIds","memo", "fileId"]
         },
         {
             name: "Budgets",
@@ -233,4 +233,116 @@ Spreadsheet.transactions = function() {
 }
 Spreadsheet.budgets = function() {
     return Query.budgets();
+}
+
+Spreadsheet.importTransactions = async function(fileId, importProfileName, rawText) {
+    try
+    {
+        const [transactions, labels, importSettings] = await Promise.all(
+            [
+                Storage.getTransactions(),
+                Storage.getLabels(),
+                Storage.getImportSettings()
+            ]
+        );
+        const rules = importSettings.filter(x => x.profileName == importProfileName);
+        rules.forEach(rule => {
+            rule.fieldType = Enums.importSettingType.find(x => x.name == rule.fieldTypeId).name;
+        });
+        //Clean up any bad/old transactions
+        const replacedTransactions = transactions.filter(x => x.fileId === fileId);
+        replacedTransactions.forEach(x => {
+            x.isActive = false;
+            x.updateDate = new Date().toISOString();
+        });
+
+        let lines = rawText.split("\n");
+
+        let columnMappings = lines[0].split(',');
+
+        let newTransactions = [];
+        for(let i = 1; i < lines.length; i++)
+        {
+            let fields = lines[i].split(',');
+            if(fields.length < columnMappings.length)
+                continue;
+
+            let transaction = new Transaction();
+            transaction.id = transactions.length += 1;
+            transaction.fileId = fileId;
+
+            //Apply profile import rules
+            let transDate = new Date();
+            rules.forEach(rule => {
+                let index = columnMappings.indexOf(rule.column);
+                let fieldValue = fields[index];
+                if(fieldValue == null)
+                    fieldValue = '';
+                if(fieldValue.match(new RegExp(rule.pattern, "i")))
+                {
+                    switch(rule.fieldType)
+                    {
+                        case "TransactionDate":
+                            transDate = new Date(fieldValue);
+                            break;
+                        case "TransactionType": 
+                            transaction.transactionTypeId = rule.value;
+                            break;
+                        case "PaymentMethod":
+                            transaction.paymentMethodId = rule.value;
+                            break;
+                        case "Amount":
+                            transaction.amount = Math.abs(fieldValue);
+                            break;
+                        case "PrimaryCategory":
+                            transaction.primaryCategoryId = rule.value;
+                            break;
+                        case "SubCategory":
+                            if(transaction.subCategoryIds == null)
+                                transaction.subCategoryIds = rule.value
+                            else
+                                transaction.subCategoryIds += " " + rule.value;
+                            break;
+                        case "Memo":
+                            const memo = rule.value == null || rule.value == ''
+                                ? fieldValue : rule.value + fieldValue;
+                            transaction.memo = transaction.memo == null ? memo
+                                : transaction.memo + memo;
+                            break;
+                        case "IsActive":
+                            transaction.isActive = rule.value == true;
+                            break;
+                    }
+                }
+            });
+
+            //Don't import if we chose to ignore
+            if(!transaction.isActive)
+                continue;
+            
+            newTransactions.push(transaction);
+
+            if(transaction.paymentMethodId == null)
+                transaction.paymentMethodId = labels.find(x => x.paymentMethod == true).id;
+            if(transaction.primaryCategoryId == null)
+                transaction.primaryCategoryId = labels.find(x => x.primaryCategory == true).id;
+
+            const date = transDate;
+            const dateParts = date.toString().split(" ");
+            transaction.updateDate = new Date().toISOString();
+            transaction.isActive = true;
+            transaction.transactionDate = date.toISOString().substring(0, 10);
+            transaction.accountingMonth = date.toISOString().substring(0, 7);
+            transaction.transactionMonth = dateParts[1];
+            transaction.transactionDay = date.getDate();
+            transaction.transactionDayOfTheWeek = dateParts[0];
+            transaction.transactionYear = date.getFullYear();
+        }
+        console.log(`${replacedTransactions.length} were deleted. ${newTransactions.length} were imported:`);
+        console.log(newTransactions);
+    }
+    catch(error)
+    {
+        App.logError(error);
+    }
 }

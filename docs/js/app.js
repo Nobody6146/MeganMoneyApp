@@ -83,7 +83,8 @@ App.start = function() {
 
         App.models.currentSelection = {
             spreadsheet: App.storage.spreadsheet != null ? App.storage.spreadsheet : "",
-            month: App.storage.month
+            month: App.storage.month,
+            updateSelection: App.updateSelection
         };
 
         if(App.storage.version == null)

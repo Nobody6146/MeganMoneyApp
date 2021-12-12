@@ -70,4 +70,5 @@ function Transaction() {
     this.primaryCategoryId = null;
     this.subCategoryIds = null;
     this.memo = null;
+    this.fileId = null;
 }

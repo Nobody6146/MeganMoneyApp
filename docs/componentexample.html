@@ -27,7 +27,7 @@
                 <!-- We'll use this to control disabling the submit button -->
                 <button spa-model="_" spa-toggle="disableSubmit disabled" spa-handler="submitCallback onclick">Submit</button>
                 <!-- Setup a callback function whenever any model prop changes (*), validate the form -->
-                <span spa-model="_" spa-function="* validateForm" ></span>
+                <span spa-model="_" spa-callback="* validateForm" ></span>
                 <p>Hello
                     <span style="color: blue" spa-model="_" spa-property="firstName innerHTML"></span>
                     <span style="color: blue" spa-model="_" spa-property="lastName innerHTML"></span>
@@ -49,6 +49,17 @@
         <!-- Test our components or seperate by creating a new instance of our component with different data -->
         <div spa-model="state" spa-component="form2 FormTemplate"></div>
 
+        <!-- Test Running a script when loaded -->
+        <!-- The spa-script attribute allows us to assign a script (aka a function) to model a property
+            The first arg being the prop to iniate binding, second the property to have it's function body be the inner text of the element
+            the final argument is optional and is the desired passed in parameter name (defaults to "event") -->
+        <script spa-model="state" spa-script="form init" spa-callback="init init">
+            (spaEvent) => {
+                console.log(spaEvent);
+                console.log("component initialized!");
+            };
+        </script>
+
         <script>
             //Create our app with default options
             const spa =  new SootheApp();
@@ -56,6 +67,28 @@
             function submitForm(domEvent, spaEvent) {
                 alert(`Form ${spaEvent.modelName} submitted`);
             }
+
+            //Define a callback function to handle form validation
+            //Even though we have 2 seperate components, we only need one validation function
+            //  because we pass in the component state
+            function validateForm(spaEvent) {
+                let errorMessage = "";
+                if(spaEvent.model.firstName == null || spaEvent.model.firstName.length == 0)
+                    errorMessage = "Please input a first name,";
+                if(spaEvent.model.lastName == null || spaEvent.model.lastName.length == 0)
+                    errorMessage += "Please input a last name,";
+                
+                //I check before setting the model, otherwise we'll get stuck in an infinite loop
+                // because we are responding to all model changes
+                // Could fix this by calling validation on only certain props such as
+                //  ex: spa-callback="firstName validateForm; lastName validateForm"
+                if(spaEvent.model.errorMessage != errorMessage)
+                    spaEvent.model.errorMessage = errorMessage;
+                const disableSubmit = errorMessage != "";
+                if(spaEvent.model.disableSubmit != disableSubmit)
+                    spaEvent.model.disableSubmit = disableSubmit;
+                console.log("validated");
+            };
             
             //Bind our first model called "state" and set it to an empty object
             // Model data or DOM elements can be bound at any time when either changes
@@ -74,7 +107,8 @@
                     spaEvent.model.lastName = "";
                     console.log("cleared");
                 },
-                submitCallback: submitForm
+                submitCallback: submitForm,
+                validateForm
             }
 
             //Lets bind a second set of component data
@@ -92,30 +126,11 @@
                     spaEvent.model.lastName = spaEvent.model.lastName.toLowerCase();
                     console.log("change case");
                 },
-                submitCallback: submitForm
+                submitCallback: submitForm,
+                validateForm
             }
 
-            //Define a callback function to handle form validation
-            //Even though we have 2 seperate components, we only need one validation function
-            //  because we pass in the component state
-            var validateForm = function(spaEvent) {
-                let errorMessage = "";
-                if(spaEvent.model.firstName == null || spaEvent.model.firstName.length == 0)
-                    errorMessage = "Please input a first name,";
-                if(spaEvent.model.lastName == null || spaEvent.model.lastName.length == 0)
-                    errorMessage += "Please input a last name,";
-                
-                //I check before setting the model, otherwise we'll get stuck in an infinite loop
-                // because we are responding to all model changes
-                // Could fix this by calling validation on only certain props such as
-                //  ex: spa-function="firstName validateForm; lastName validateForm"
-                if(spaEvent.model.errorMessage != errorMessage)
-                    spaEvent.model.errorMessage = errorMessage;
-                const disableSubmit = errorMessage != "";
-                if(spaEvent.model.disableSubmit != disableSubmit)
-                    spaEvent.model.disableSubmit = disableSubmit;
-                console.log("validated");
-            };
+            
         </script>
     </body>
 </html>

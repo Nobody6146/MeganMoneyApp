@@ -5,7 +5,7 @@ function Auth()
         this.googleAuth = null;
         gapi.load('client:auth2', this.start.bind(this));
     
-        this.AUTH_SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets";
+        this.AUTH_SCOPES = "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets";
     }
     catch(error)
     {
