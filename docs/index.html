@@ -155,6 +155,20 @@
                     </div>
                 </div>
             </div>
+            <div id="ok-modal" class="modal modal-hidden">
+                <div class="modal-blackout"></div>
+                <div class="modal-container">
+                    <div class="modal-header">
+                        <h3>Title</h3>
+                    </div>
+                    <div class="modal-body">
+                        <span>Something occured</span>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="dismiss-button" class="modal-button" onclick="App.dismissModals()">Ok</button>
+                    </div>
+                </div>
+            </div>
             <div id="newSpreadsheet-modal" class="modal modal-hidden">
                 <div class="modal-blackout"></div>
                 <div class="modal-container">
@@ -167,6 +181,39 @@
                     <div class="modal-footer">
                         <button class="modal-button" onclick="App.dismissModals()">Cancel</button>
                         <button class="modal-button" spa-model="newSpreadsheet" spa-handler="createSpreadsheet onclick">Create</button>
+                    </div>
+                </div>
+            </div>
+            <div id="importTransactions-modal" class="modal modal-hidden">
+                <span class="spa-templates" hidden>
+                    <select>
+                        <optgroup spa-template="ImportFileSelector">
+                            <option spa-model="_" spa-property="id value;name innerHTML" spa-trigger="id bind {{currentSelection.spreadsheet}}"></option>
+                        </optgroup>
+                    </select>
+                </span>
+                <div class="modal-blackout"></div>
+                <div class="modal-container">
+                    <div class="modal-header">
+                        <h3>Import Transactions</h3>
+                    </div>
+                    <div class="modal-body">
+                        <label>Import file:</label>
+                        <select spa-model="import.files" spa-property="selectedId value" spa-input="selectedId value">
+                            <option value="" selected disabled hidden>&lt;Pick a CSV&gt;</option> 
+                            <optgroup label="CSVs" spa-model="import.files" spa-list="list ImportFileSelector">
+                            </optgroup>
+                        </select>
+                        <label>Import profile:</label>
+                        <select spa-model="import.profiles" spa-property="selectedId value" spa-input="selectedId value">
+                            <option value="" selected disabled hidden>&lt;Pick a profile&gt;</option> 
+                            <optgroup label="Profile Names" spa-model="import.profiles" spa-list="list ImportFileSelector">
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="modal-button" onclick="App.dismissModals()">Cancel</button>
+                        <button class="modal-button" spa-model="import" spa-handler="importTransactions onclick">Import</button>
                     </div>
                 </div>
             </div>

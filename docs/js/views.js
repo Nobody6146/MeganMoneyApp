@@ -297,9 +297,9 @@ TransactionsView.prototype.getData = function(req, res) {
                         window.location = TransactionsEditView.prototype.getRoute(0);
                     }
                 },
-                newTransaction: {
+                importTransactions: {
                     onclick: function(event, spaEvent) {
-                        window.location = TransactionsEditView.prototype.getRoute(0);
+                        App.displayImportTransactionModal();
                     }
                 }
             }

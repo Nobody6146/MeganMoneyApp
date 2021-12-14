@@ -4,7 +4,7 @@ function Spreadsheet() {
 
 Spreadsheet.listSheets = async function() {
     return (
-        await gapi.client.drive.files.list({q: "mimeType='application/vnd.google-apps.spreadsheet'"})
+        await gapi.client.drive.files.list({q: "mimeType='application/vnd.google-apps.spreadsheet' and trashed=false"})
     ).result.files;
 }
 
@@ -236,15 +236,16 @@ Spreadsheet.budgets = function() {
 }
 
 Spreadsheet.importTransactions = async function(fileId, importProfileName, rawText) {
-    try
-    {
-        const [transactions, labels, importSettings] = await Promise.all(
-            [
-                Storage.getTransactions(),
-                Storage.getLabels(),
-                Storage.getImportSettings()
-            ]
-        );
+    return Promise.all(
+        [
+            Storage.getTransactions(),
+            Storage.getLabels(),
+            Storage.getImportSettings()
+        ]
+    )
+    .then(res => {
+        const [transactions, labels, importSettings] = res;
+        
         const rules = importSettings.filter(x => x.profileName == importProfileName);
         rules.forEach(rule => {
             rule.fieldType = Enums.importSettingType.find(x => x.name == rule.fieldTypeId).name;
@@ -259,7 +260,7 @@ Spreadsheet.importTransactions = async function(fileId, importProfileName, rawTe
         let lines = rawText.split("\n");
 
         let columnMappings = lines[0].split(',');
-
+        
         let newTransactions = [];
         for(let i = 1; i < lines.length; i++)
         {
@@ -268,7 +269,6 @@ Spreadsheet.importTransactions = async function(fileId, importProfileName, rawTe
                 continue;
 
             let transaction = new Transaction();
-            transaction.id = transactions.length += 1;
             transaction.fileId = fileId;
 
             //Apply profile import rules
@@ -320,7 +320,9 @@ Spreadsheet.importTransactions = async function(fileId, importProfileName, rawTe
             if(!transaction.isActive)
                 continue;
             
+            transaction.id = transactions.length + 1;
             newTransactions.push(transaction);
+            transactions.push(transaction);
 
             if(transaction.paymentMethodId == null)
                 transaction.paymentMethodId = labels.find(x => x.paymentMethod == true).id;
@@ -338,11 +340,12 @@ Spreadsheet.importTransactions = async function(fileId, importProfileName, rawTe
             transaction.transactionDayOfTheWeek = dateParts[0];
             transaction.transactionYear = date.getFullYear();
         }
-        console.log(`${replacedTransactions.length} were deleted. ${newTransactions.length} were imported:`);
-        console.log(newTransactions);
-    }
-    catch(error)
-    {
-        App.logError(error);
-    }
+        
+        return Promise.resolve(
+            {
+                transactions, 
+                replacedTransactions,
+                newTransactions
+            });
+    });
 }

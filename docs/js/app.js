@@ -41,6 +41,34 @@ function App() {
     addModelProp("currentSelection");
     addModelProp("newSpreadsheet");
     addModelProp("page");
+    addModelProp("import");
+    App.models.import = {
+        files: null,
+        profiles: null,
+        importTransactions: function(domEvent, spaEvent) {
+            const profile = spaEvent.data.profiles.selectedId;
+            const file = spaEvent.data.files.selectedId;
+            App.displayWaitingModal();
+
+            App.readCsvFile(file)
+            .then(res => {
+                return App.importTransactions(file, profile, res);
+            })
+            .then(res => {
+                App.displayOkModal("Success", `Import Complete! ${res.purged} transactions have been purged and ${res.added} added`,
+                    "Ok",
+                    function() {
+                        App.route();
+                    }
+                );
+            })
+            .catch(err => {
+                App.dismissModals();
+                App.logError(err);
+            });
+        }
+    }
+    
     App.models.newSpreadsheet.createSpreadsheet = function(domEvent, spaEvent) {
         const name = spaEvent.data.name;
         App.displayWaitingModal();
@@ -191,9 +219,50 @@ App.displayConfirmModal = function(title, message, cancelTitle, confirmTitle, co
             confirmCallback();
     }
 }
+App.displayOkModal = function(title, message, dismissTitle, dismissCallback) {
+    const modal = App.displayModal("ok-modal", true);
+    modal.querySelectorAll(".modal-header h3")[0].innerHTML = title;
+    modal.querySelectorAll(".modal-body span")[0].innerHTML = message;
+    modal.querySelectorAll("#dismiss-button")[0].innerHTML = dismissTitle != null ? dismissTitle : "Ok";
+    modal.querySelectorAll("#dismiss-button")[0].onclick = function() {
+        App.dismissModals();
+        if(dismissCallback)
+            dismissCallback();
+    }
+}
 App.displayCreateNewSpreadsheetModal = function() {
     App.models.newSpreadsheet.name = "";
     App.displayModal("newSpreadsheet-modal", true);
+}
+App.displayImportTransactionModal = async function() 
+{
+    return Promise.all([Storage.getImportSettings(), gapi.client.drive.files.list({q: "mimeType='text/csv' and trashed=false"})])
+    .then(res => {
+        const [importSettings, fileList] = res;
+        const profileNames = importSettings.map(x => x.profileName)
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .map(x =>
+        {
+            return {
+                name: x,
+                value: x
+            }
+        });
+
+        App.models.import.files = {
+            list: fileList.result.files,
+            selectedId: "",
+        };
+        App.models.import.profiles = {
+            list: profileNames,
+            selectedId: "",
+        };
+        App.displayModal("importTransactions-modal", true);
+    })
+    .catch(err =>
+    {
+        App.logError(err);
+    });
 }
 
 //======== Versioning =========//
@@ -227,7 +296,6 @@ App.signedIn = async function(user) {
             selectedId: Storage.getCurrentSpreadsheet()
         };
 
-        
         await App.updateSheetsList();
         try{
             const settings = await Storage.getSettings();
@@ -330,4 +398,31 @@ App.transactions.get = function(month = new Date().getMonth() + 1, year = new Da
             reject(err);
         });
     });
+}
+
+//========== TRansactions import
+App.readCsvFile = function(fileId)
+{
+    return gapi.client.drive.files.get({fileId: fileId, alt: "media" })
+    .then(res => {
+        return Promise.resolve(res.body);
+    });
+}
+App.importTransactions = function(fileId, importProfile, text)
+{
+    let importResult;
+    return Spreadsheet.importTransactions(fileId, importProfile, text)
+    .then(res => {
+        importResult = res;
+        //console.log(res.transactions);
+        //return Promise.resolve(res.newTransactions);
+        return Storage.updateTransactions(res.transactions)
+    })
+    .then(res => {
+        console.log(importResult.transactions);
+        return Promise.resolve({
+            purged: importResult.replacedTransactions.length,
+            added: importResult.newTransactions.length
+        });
+    })
 }
