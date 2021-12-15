@@ -827,13 +827,20 @@ function SootheApp(options) {
         {
             let model = values[i];
             let index = indexes[i];
+
+            let children = [];
             template.childNodes.forEach(x => {
                 let node = x.cloneNode(true);
                 
-                target.appendChild(node);
+                //target.appendChild(node);
+                children.push(node);
+
+                if(!(node instanceof Element))
+                    return;
+
                 //Bind all the local model and prop names
-                let localModels = target.querySelectorAll("[" + SootheApp.prototype.modelBindAttr + "='" + SootheApp.prototype.insertionChar + "']");
-                localModels.forEach(el => {
+                let localModels = node.querySelectorAll("[" + SootheApp.prototype.modelBindAttr + "='" + SootheApp.prototype.insertionChar + "']");
+                const processNode = function(el) {
                     Object.values(el.attributes).map(x => x.name).forEach(attrName => {
                         if(attrName !== SootheApp.prototype.modelBindAttr &&
                             SootheApp.prototype.attributes.find(x => x === attrName)) {
@@ -842,10 +849,14 @@ function SootheApp(options) {
                             }
                     });
                     let modelAttr = el.getAttribute(SootheApp.prototype.modelBindAttr);
-                    if(modelAttr !== undefined)
+                    if(modelAttr != null)
                         el.setAttribute(SootheApp.prototype.modelBindAttr, modelAttr.replace(SootheApp.prototype.insertionChar, index));
-                });
+                }
+                processNode(node);
+                localModels.forEach(el => processNode(el));
             });
+
+            children.forEach(x => target.appendChild(x));
         }
     }
 

@@ -289,7 +289,7 @@ TransactionsView.prototype.getData = function(req, res) {
                 transactionClass: (accountBalance < 0 === settings.goodTransaction < 0) || (accountBalance >= 0 === settings.goodTransaction >= 0)
                     ? "transaction-good" : "transaction-bad"
             },
-            transactions: periodTransactions,//.sort((x, y) => x.transactionDate > y.transactionDate ? -1 : x.transactionDate < y.transactionDate ? 1 : x.id < y.id ? 1 : -1),
+            //transactions: periodTransactions,//.sort((x, y) => x.transactionDate > y.transactionDate ? -1 : x.transactionDate < y.transactionDate ? 1 : x.id < y.id ? 1 : -1),
             transactionGroups: transactionGroups,
             buttons: {
                 newTransaction: {
