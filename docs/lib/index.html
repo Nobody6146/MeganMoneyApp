@@ -1,0 +1,15 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <script src="hydrate.js"></script>
+    </head>
+    <body>
+        <h1 h-model="state" h-attribute="greeting innerHTML"></h1>
+        <script>
+            let hydrate = new HydrateApp();
+            let state = {greeting: "Hello world"};
+            hydrate.bind("state", state);
+        </script>
+    </body>
+</html>

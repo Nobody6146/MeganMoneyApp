@@ -84,7 +84,7 @@ Chart.prototype.drawPieChart = function(data) {
     
     legend.style = "display: flex;flex-wrap:wrap;";
     data.forEach(section => {
-        let percentage = (Math.abs(section.value) / total*100).toFixed(2);
+        let percentage = (Math.abs(section.value) / total*100).toFixed(0);
         let container = document.createElement("div");
         container.style = "display: flex;padding:5px;";
         let box = document.createElement("div");

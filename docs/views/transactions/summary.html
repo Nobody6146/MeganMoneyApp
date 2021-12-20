@@ -1,0 +1,17 @@
+<span spa-template="ChartTemplate" hidden>
+    <div spa-model="_" spa-property="id id" spa-callback="title generateChart" spa-attr="title spa-static {{true}}"></div>
+    <!-- <div spa-model="_" spa-func="title log"></div>> -->
+</span>
+
+<div class="page-animation-right" spa-model="*" spa-attr="* class {{page-animation-none}}">
+    <p>
+        <button class="button-accent" style="margin: 0 10px" spa-model="page.data.buttons.transactions" spa-handler="onclick onclick">Transactions</button>
+        <br />
+    </p>
+
+    
+
+    <div id="Charts" spa-model="page.data" spa-dictionary="charts ChartTemplate" spa-event="bind">
+
+    </div>
+</div>

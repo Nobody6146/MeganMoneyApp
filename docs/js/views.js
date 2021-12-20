@@ -232,7 +232,7 @@ TransactionsView.prototype.getData = function(req, res) {
         let accountingMonth = Storage.getCurrentAccountingMonth();
         let dateParts = accountingMonth.split("-");
         const activeTransactions = transactions.filter(x => x.isActive && x.accountingMonth <= accountingMonth)
-            .sort((x, y) => x.transactionDate > y.transactionDate ? 1 : x.transactionDate < y.transactionDate ? - 1 : x.id < y.id ? -1 : 1);
+            .sort((x, y) => x.transactionDate > y.transactionDate ? 1 : x.transactionDate < y.transactionDate ? -1 : x.id > y.id ? 1 : -1);
         let periodTransactions = activeTransactions.filter(x => x.accountingMonth == accountingMonth);
         let accountBalance = 0;
         let priorBalance = 0;
@@ -263,16 +263,24 @@ TransactionsView.prototype.getData = function(req, res) {
             x.description = x.memo != null && x.memo != "" ? x.memo : x.paymentMethod.name;
         }
 
-        periodTransactions = periodTransactions.sort((x, y) => x.transactionDate > y.transactionDate ? -1 : x.transactionDate < y.transactionDate ? 1 : x.id < y.id ? 1 : -1);
+        //periodTransactions = periodTransactions.sort((x, y) => x.transactionDate > y.transactionDate ? -1 : x.transactionDate < y.transactionDate ? 1 : x.id > y.id ? -1 : 1);
         let transactionGroups = {};
         periodTransactions.forEach(x => {
-            let group = transactionGroups[x.date];
+            let group = transactionGroups[x.transactionDay];
             if(group === undefined)
             {
                 group = {label: x.date, transactions: []};
-                transactionGroups[x.date] = group;
+                transactionGroups[x.transactionDay] = group;
             }
-            group.transactions.push(x);
+            group.transactions.push({
+                primaryCategoryColor: x.primaryCategoryColor,
+                primaryCategoryName: x.primaryCategoryName,
+                description: x.description,
+                amount: x.amount,
+                transactionClass: x.transactionClass,
+                accountBalance: x.accountBalance,
+                edit: x.edit
+            });
         });
 
         dateParts = Util.inputToDate(accountingMonth).toString().split(" ");
@@ -301,7 +309,12 @@ TransactionsView.prototype.getData = function(req, res) {
                     onclick: function(event, spaEvent) {
                         App.displayImportTransactionModal();
                     }
-                }
+                },
+                summary: {
+                    onclick: function(event, spaEvent) {
+                        window.location = TransactionsSummaryView.prototype.getRoute();
+                    }
+                },
             }
         };
     });
@@ -350,7 +363,7 @@ TransactionsEditView.prototype.getData = function(req) {
         };
         let subCategories = {
             selected: null,
-            categories: !transaction.subCategoryIds ? [] : transaction.subCategoryIds.split(" ").map(x => labels.find(y => y.id == x))
+            categories: !transaction.subCategoryIds ? [] : transaction.subCategoryIds.toString().split(" ").map(x => labels.find(y => y.id == x))
         };
         const addSubCategory = function(event, spaEvent) {
             event.preventDefault();
@@ -467,56 +480,92 @@ TransactionsEditView.prototype.getData = function(req) {
     });
 }
 
-function TransactionsChartsView() {
+function TransactionsSummaryView() {
     MeganMoneyView.call(this,"Transactions");
 }
-TransactionsChartsView.prototype = Object.create(MeganMoneyView.prototype);
-TransactionsChartsView.prototype.getRoute = function() {
-    return "#transactions/visual";
+TransactionsSummaryView.prototype = Object.create(MeganMoneyView.prototype);
+TransactionsSummaryView.prototype.getRoute = function() {
+    return TransactionsView.prototype.getRoute() + "/summary"
 }
-TransactionsChartsView.prototype.getHTML = function() {
-   return fetch("views/transactions/index.html");
+TransactionsSummaryView.prototype.getHTML = function() {
+   return fetch("views/transactions/summary.html");
 }
-TransactionsChartsView.prototype.getData = function(req, res) {
-    return Promise.all([Storage.getSettings(), Storage.getLabels(), Storage.getTransactions()])
+ TransactionsSummaryView.prototype.getData = function(req, res) {
+    let accountingMonth = Storage.getCurrentAccountingMonth();
+
+    return Promise.all([Storage.getSettings(), Storage.getLabels(), Storage.getTransactions(accountingMonth)])
     .then(res => {
         const [settings, labels, transactions] = res;
-        let accountingMonth = Storage.getCurrentAccountingMonth();
-        let dateParts = accountingMonth.split("-");
-        let periodTransactions = transactions.filter(x => x.isActive && x.accountingMonth == accountingMonth);
-        periodTransactions.forEach(x => {
-            const dateParts = Util.inputToDate(x.transactionDate).toString().split(" ");
-            x.date = dateParts[0] + " " + parseInt(dateParts[2]);
-            x.edit = function() {
-                window.location = TransactionsEditView.prototype.getRoute(x.id);
-            };
-            x.transactionClass = x.transactionTypeId == settings.goodTransaction ? "transaction-good" : "transaction-bad";
-            x.primaryCategory = labels.find(y => y.id == x.primaryCategoryId);
-            x.color = x.primaryCategory.color;
-            x.name = x.primaryCategory.name;
-        });
-        let balance = periodTransactions.reduce(
-            (total, next) => total + (next.transactionTypeId == settings.positiveAmount ? next.amount : - next.amount),
-            0
-        );
-        dateParts = Util.inputToDate(accountingMonth).toString().split(" ");
-        return {
-            accounting: {
-                accountingMonth: dateParts[1] + " " + dateParts[3],
-                balance,
-                transactionClass: (balance < 0 === settings.goodTransaction < 0) || (balance >= 0 === settings.goodTransaction >= 0)
-                    ? "transaction-good" : "transaction-bad"
-            },
-            transactions: periodTransactions,
-            buttons: {
-                newTransaction: {
-                    onclick: function(event, spaEvent) {
-                        window.location = TransactionsEditView.prototype.getRoute(0);
+
+        let charts = {};
+        let addToChart = function(chartName, key, color, value) {
+            let chart = charts[chartName];
+            if(!chart) {
+                chart = {
+                    id: chartName,
+                    title: chartName.replace(/_/g, " "),
+                    data: [],
+                    generateChart: function(event) {
+                        let chartName = event.varName;
+                        let rawChart = event.app.getModelData("page.data.charts")[chartName];
+                        if(!rawChart)
+                            return;
+                    
+                        let chartDiv = document.querySelector("#" + chartName);
+                        let chartOptions = new ChartOptions(rawChart.title, 200);
+                        let chartData = Object.keys(rawChart.data).map(label => {
+                            let data = rawChart.data[label];
+                            return new ChartData(label, data.value.toFixed(0), data.color);
+                        });
+                        let chart = new Chart(chartDiv, chartOptions);
+                        chart.drawPieChart(chartData);
                     }
-                },
-                newTransaction: {
+                };
+                charts[chartName] = chart;
+            }
+            if(chart.data[key])
+                chart.data[key].value += value;
+            else
+                chart.data[key] = {
+                    color, value
+                };
+        }
+
+        const defaultLabel = new Label();
+        defaultLabel.id = 0;
+        defaultLabel.name = "Unknown";
+        defaultLabel.color = "lightgray";
+        defaultLabel.paymentMethod = true;
+        defaultLabel.primaryCategory = true;
+        defaultLabel.subCategory = true;
+
+        transactions.forEach(transaction => {
+            let paymentLabel = labels.find(x => x.id == transaction.paymentMethodId);
+            if(paymentLabel == null)
+                paymentLabel = defaultLabel;
+            let primaryLabel = labels.find(x => x.id == transaction.primaryCategoryId);
+            if(primaryLabel == null)
+                primaryLabel = defaultLabel;
+            let amount = transaction.amount;
+            addToChart("Transactions_by_Category", primaryLabel.name, primaryLabel.color, 1);
+            addToChart("Totals_by_Category", primaryLabel.name, primaryLabel.color, amount);
+            transaction.subCategoryIds.toString().split(" ").forEach(categoryId => {
+                let categoryLabel = labels.find(x => x.id == categoryId);
+                if(categoryLabel == null)
+                    categoryLabel = defaultLabel;
+                addToChart("Transactions_by_Category", categoryLabel.name, categoryLabel.color, 1);
+                addToChart("Totals_by_Category", categoryLabel.name, categoryLabel.color, amount);
+            })
+            addToChart("Totals_by_Payment_Method", paymentLabel.name, paymentLabel.color, amount);
+            addToChart("Transactions_by_Payment_Method", paymentLabel.name, paymentLabel.color, 1);
+        });
+
+        return {
+            charts,
+            buttons: {
+                transactions: {
                     onclick: function(event, spaEvent) {
-                        window.location = TransactionsEditView.prototype.getRoute(0);
+                        window.location = TransactionsView.prototype.getRoute()
                     }
                 }
             }

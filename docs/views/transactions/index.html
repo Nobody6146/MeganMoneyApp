@@ -44,7 +44,7 @@
     </div>
 </div>
 
-<div style="width: 100%; position: fixed; background-color: var(--theme-color-background);">
+<div style="width: 100%; position: fixed; background-color: var(--theme-color-background); top: 60px;">
     <div style="width: 100%; padding: 10px; box-sizing: border-box;">
         <div style="width: 100%; text-align: center;">
             <h2 style="font-weight: normal; font-style: italic; margin: 0 0 3px 0;" spa-model="page.data.accounting" spa-property="accountingMonth innerHTML"></h2>
@@ -65,7 +65,7 @@
     
     <div style="display: flex; justify-content: center; width: 100%;">
         <div style="display: flex; justify-content: center; box-sizing: border-box; width: 80%; border-top: 1px solid var(--theme-color-neutral); border-bottom: 1px solid var(--theme-color-contrast); padding: 10px 0;">
-            <button class="button-accent" style="margin: 0 10px" spa-model="page.data.buttons.charts" spa-handler="onclick onclick">Charts</button>
+            <button class="button-accent" style="margin: 0 10px" spa-model="page.data.buttons.summary" spa-handler="onclick onclick">Charts</button>
             <button class="button-accent" style="margin: 0 10px" spa-model="page.data.buttons.importTransactions" spa-handler="onclick onclick">Import</button>
             <button class="button-accent" style="margin: 0 10px" spa-model="page.data.buttons.search" spa-handler="onclick onclick">Search</button>
         </div>

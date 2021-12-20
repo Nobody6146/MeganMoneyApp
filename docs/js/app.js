@@ -139,6 +139,7 @@ App.loadPages = function() {
     let labelsEditView = new LabelsEditView();
     let transactionsView = new TransactionsView();
     let transactionsEditView = new TransactionsEditView();
+    let transactionsSummaryView = new TransactionsSummaryView();
 
     //Bind routes
     spa.addRoute(".*", (req, res, next) => {
@@ -155,6 +156,7 @@ App.loadPages = function() {
     spa.addRoute(labelsEditView.getRoute(), labelsEditView.render.bind(labelsEditView));
     spa.addRoute(transactionsView.getRoute(), transactionsView.render.bind(transactionsView));
     spa.addRoute(transactionsEditView.getRoute(), transactionsEditView.render.bind(transactionsEditView));
+    spa.addRoute(transactionsSummaryView.getRoute(), transactionsSummaryView.render.bind(transactionsSummaryView));
     spa.addRoute(".*", (req, res, next) => {
         res.spa.navigateTo(dashboardView.getRoute());
     });
