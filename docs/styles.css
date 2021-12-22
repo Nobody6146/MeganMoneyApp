@@ -12,6 +12,11 @@
   --theme-color-accent-2: yellowgreen; */
 }
 
+body {
+  -webkit-tap-highlight-color: transparent;
+  te
+}
+
 ul {
   list-style: none;
 }
@@ -80,9 +85,9 @@ body {
 .nav-link {
   transition: background-color 250ms ease-in-out;
 }
-.nav-link:hover {
+/* .nav-link:hover {
   background-color: var(--theme-color-compliment);
-}
+} */
 .nav-link-active {
   color: var(--theme-color-accent);
 }

@@ -1,242 +1,264 @@
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-        <title>MeganMoney | Home</title>
-        <link rel="icon" type="/image/png" href="favicon.png" sizes="16x16">
-        <link rel="manifest" href="manifest.json">
-        <link href="https://fonts.googleapis.com/icon?family=Material+Icons"rel="stylesheet">
-        <script src="https://apis.google.com/js/api.js"></script>
-        <link rel="stylesheet" href="styles.css">
-        <script src="js/util.js"></script>
-        <script src="js/types.js"></script>
-        <script src="lib/soothe.js"></script>
-        <script src="lib/charts.js"></script>
-        <script src="js/views.js"></script>
-        <script src="index.js"></script>
-        <script src="js/storage.js"></script>
-        <script src="js/spreadsheet.js"></script>
-        <script src="js/app.js"></script>
-        <script src="js/auth.js"></script>
-        <script src='js/query.js'></script>
-        <!-- <script src="https://www.gstatic.com/charts/loader.js"></script> -->
-        <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script> -->
-        <!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@0.4.0/dist/chartjs-plugin-datalabels.min.js"></script>  -->
-        <style>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no"/>
+    <title>MeganMoney | Home</title>
+    <link rel="icon" type="/image/png" href="favicon.png" sizes="16x16">
+    <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://apis.google.com/js/api.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script src="js/util.js"></script>
+    <script src="js/types.js"></script>
+    <script src="lib/soothe.js"></script>
+    <script src="lib/charts.js"></script>
+    <script src="js/views.js"></script>
+    <script src="index.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/spreadsheet.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/query.js"></script>
 
-        </style>
-        <!-- iOS Support -->
-        <link rel="apple-touch-icon" href="favicon-144x144.png">
-        <meta name="apple-mobile-web-app-status-bar" content="#0000FF">
-    </head>
-    <body spa-model="theme" spa-property="primaryColor style {{--theme-color-accent: {{value}}}}">
-        <span class="spa-templates" hidden>
+    <!-- <script src="https://www.gstatic.com/charts/loader.js"></script> -->
+
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script> -->
+
+    <!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@0.4.0/dist/chartjs-plugin-datalabels.min.js"></script>  -->
+    <style>
+    </style>
+
+    <!-- iOS Support -->
+    <!-- pwa-asset-generator ../icon-144x144.png -i ../index.html -m ../manifest.json -->
+    <meta name="apple-mobile-web-app-status-bar" content="#0000FF">
+    <link rel="apple-touch-icon" href="icons/apple-icon-180.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-2048-2732.jpg" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-2732-2048.jpg" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-1668-2388.jpg" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-2388-1668.jpg" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-1536-2048.jpg" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-2048-1536.jpg" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-1668-2224.jpg" media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-2224-1668.jpg" media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-1620-2160.jpg" media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-2160-1620.jpg" media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-1284-2778.jpg" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-2778-1284.jpg" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-1170-2532.jpg" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-2532-1170.jpg" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-1125-2436.jpg" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-2436-1125.jpg" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-1242-2688.jpg" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-2688-1242.jpg" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-828-1792.jpg" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-1792-828.jpg" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-1242-2208.jpg" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-2208-1242.jpg" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-750-1334.jpg" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-1334-750.jpg" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-640-1136.jpg" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/apple-splash-1136-640.jpg" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+  </head>
+  <body spa-model="theme" spa-property="primaryColor style {{--theme-color-accent: {{value}}}}">
+    <span class="spa-templates" hidden="">
             <select>
                 <optgroup spa-template="SpreadsheetSelector">
                     <option spa-model="_" spa-property="id value;name innerHTML" spa-trigger="id bind {{currentSelection.spreadsheet}}"></option>
                 </optgroup>
             </select>
         </span>
-
-        <div class="sidebar">
-            <div class="clickoff" onclick="App.showSideMenu(false);"></div>
-            <nav class="nav sidebar-menu">
-                <a class="nav-item-sidebar">
-                    <div>
-                        <span spa-model="user" spa-property="name innerText"></span>
-                        <img spa-model="user" spa-attribute="avatar src">
-                    </div>
-                    
-                </a>
-                <a class="nav-item-sidebar">
-                    Settings
-                </a>
-                <div class="nav-item-sidebar">
-                    <button onclick="App.showSideMenu(false);App.logOut();">Sign out</button>
-                </div>
-            </nav>
+    <div class="sidebar">
+      <div class="clickoff" onclick="App.showSideMenu(false);"></div>
+      <nav class="nav sidebar-menu">
+        <a class="nav-item-sidebar">
+          <div>
+            <span spa-model="user" spa-property="name innerText"></span>
+            <img spa-model="user" spa-attribute="avatar src">
+          </div>
+        </a>
+        <a class="nav-item-sidebar">
+          Settings
+        </a>
+        <div class="nav-item-sidebar">
+          <button onclick="App.showSideMenu(false);App.logOut();">Sign out</button>
         </div>
-        
-        <header>
-            <nav class="nav nav-top-menu">
-                <div class="nav-item nav-logo">
-                    <span>MeganMoney</span>
-                </div>
-                <a class="nav-item nav-link-float" onclick="App.showSideMenu();">
-                    <i class="material-icons nav-icon">settings</i>
-                </a>
-            </nav>
-            <div class="selectionMenu" onclick="">
-                <div class="selection-clickoff" onclick="App.showTopMenu();" ></div>
-                <div spa-model="currentSelection" spa-callback="* updateSelection" spa-event="* set">
-                    <div>
-                        Date
-                        <input class="date-picker-input" type="month" spa-model="currentSelection" spa-property="month value" spa-input="month value">
-                    </div>
-                    <div>
-                        Spreadsheet 
-                        <select spa-model="currentSelection" spa-property="spreadsheet value" spa-input="spreadsheet value">
-                            <option value="" selected disabled hidden>&lt;Pick a Spreadsheet&gt;</option> 
-                            <optgroup label="Spreadsheets" spa-model="spreadsheets" spa-list="list SpreadsheetSelector">
-                            </optgroup>
-                           
-                        </select>
-                        <button onclick="App.showTopMenu(false);App.displayCreateNewSpreadsheetModal();">+</button>
-                    </div>
-                </div>
-                
-                <span class="material-icons date-picker-icon" onclick="App.showTopMenu();">arrow_drop_down</span>
+      </nav>
+    </div>
+    <header>
+      <nav class="nav nav-top-menu">
+        <div class="nav-item nav-logo">
+          <span>MeganMoney</span>
+        </div>
+        <a class="nav-item nav-link-float" onclick="App.showSideMenu();">
+          <i class="material-icons nav-icon">settings</i>
+        </a>
+      </nav>
+      <div class="selectionMenu" onclick="">
+        <div class="selection-clickoff" onclick="App.showTopMenu();"></div>
+        <div spa-model="currentSelection" spa-callback="* updateSelection" spa-event="* set">
+          <div>
+            Date
+            <input class="date-picker-input" type="month" spa-model="currentSelection" spa-property="month value" spa-input="month value">
+          </div>
+          <div>
+            Spreadsheet
+            <select spa-model="currentSelection" spa-property="spreadsheet value" spa-input="spreadsheet value">
+              <option value="" selected="" disabled="" hidden="">&lt;Pick a Spreadsheet&gt;</option>
+              <optgroup label="Spreadsheets" spa-model="spreadsheets" spa-list="list SpreadsheetSelector">
+              </optgroup>
+            </select>
+            <button onclick="App.showTopMenu(false);App.displayCreateNewSpreadsheetModal();">+</button>
+          </div>
+        </div>
+        <span class="material-icons date-picker-icon" onclick="App.showTopMenu();">arrow_drop_down</span>
+      </div>
+    </header>
+    <main>
+      <div class="main-content">
+      </div>
+    </main>
+    <footer>
+      <nav class="nav nav-bottom">
+        <a href="#" class="nav-item nav-link nav-item" spa-model="page.tabs.dashboard" spa-class="selected nav-link-active" spa-attribute="link href">
+          <i class="material-icons nav-icon">home</i>
+          <span class="nav-title">Dashboard</span>
+        </a>
+        <a href="#" class="nav-item nav-link" spa-model="page.tabs.labels" spa-class="selected nav-link-active" spa-attribute="link href">
+          <i class="material-icons nav-icon">label</i>
+          <span class="nav-title">Labels</span>
+        </a>
+        <a href="#" class="nav-item nav-link" spa-model="page.tabs.transactions" spa-class="selected nav-link-active" spa-attribute="link href">
+          <i class="material-icons nav-icon">sell</i>
+          <span class="nav-title">Transactions</span>
+        </a>
+        <a href="#" class="nav-item nav-link" spa-model="page.tabs.budgets" spa-class="selected nav-link-active" spa-attribute="link href">
+          <i class="material-icons nav-icon">credit_score</i>
+          <span class="nav-title">Budgets</span>
+        </a>
+        <a href="#" class="nav-item nav-link" spa-model="page.tabs.savings" spa-class="selected nav-link-active" spa-attribute="link href">
+          <i class="material-icons nav-icon">savings</i>
+          <span class="nav-title">Savings</span>
+        </a>
+      </nav>
+    </footer>
+    <div id="modals">
+      <div id="waiting-modal" class="modal modal-hidden">
+        <div class="modal-blackout"></div>
+        <div class="modal-container">
+          <div class="content-center">
+            <div class="modal-spinner">
+              <div></div>
             </div>
-        </header>
-        <main>
-            <div class="main-content">
-            </div>
-        </main>
-        <footer>
-            <nav class="nav nav-bottom">
-                <a href="#" class="nav-item nav-link nav-item" spa-model="page.tabs.dashboard" spa-class="selected nav-link-active" spa-attribute="link href">
-                    <i class="material-icons nav-icon">home</i>
-                    <span class="nav-title">Dashboard</span>
-                </a>
-                <a href="#" class="nav-item nav-link" spa-model="page.tabs.labels" spa-class="selected nav-link-active" spa-attribute="link href">
-                    <i class="material-icons nav-icon">label</i>
-                    <span class="nav-title">Labels</span>
-                </a>
-                <a href="#" class="nav-item nav-link" spa-model="page.tabs.transactions" spa-class="selected nav-link-active" spa-attribute="link href">
-                    <i class="material-icons nav-icon">sell</i>
-                    <span class="nav-title">Transactions</span>
-                </a>
-                <a href="#" class="nav-item nav-link" spa-model="page.tabs.budgets" spa-class="selected nav-link-active" spa-attribute="link href">
-                    <i class="material-icons nav-icon">credit_score</i>
-                    <span class="nav-title">Budgets</span>
-                </a>
-                <a href="#" class="nav-item nav-link" spa-model="page.tabs.savings" spa-class="selected nav-link-active" spa-attribute="link href">
-                    <i class="material-icons nav-icon">savings</i>
-                    <span class="nav-title">Savings</span>
-                </a>
-            </nav>
-        </footer>
-        <div id="modals">
-            <div id="waiting-modal" class="modal modal-hidden">
-                <div class="modal-blackout"></div>
-                <div class="modal-container">
-                    <div class="content-center">
-                        <div class="modal-spinner">
-                            <div></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div id="error-modal" class="modal modal-hidden">
-                <div class="modal-blackout"></div>
-                <div class="modal-container">
-                    <div class="modal-header">
-                        <h3>Error</h3>
-                    </div>
-                    <div class="modal-body">
-                        <span>An unknown error has occured</span>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="modal-button" onclick="App.dismissModals()">Ok</button>
-                    </div>
-                </div>
-            </div>
-            <div id="confirm-modal" class="modal modal-hidden">
-                <div class="modal-blackout"></div>
-                <div class="modal-container">
-                    <div class="modal-header">
-                        <h3>Error</h3>
-                    </div>
-                    <div class="modal-body">
-                        <span>An unknown error has occured</span>
-                    </div>
-                    <div class="modal-footer">
-                        <button id="deny-button" class="modal-button" onclick="App.dismissModals()">Cancel</button>
-                        <button id="confirm-button" class="modal-button" onclick="App.dismissModals()">Ok</button>
-                    </div>
-                </div>
-            </div>
-            <div id="ok-modal" class="modal modal-hidden">
-                <div class="modal-blackout"></div>
-                <div class="modal-container">
-                    <div class="modal-header">
-                        <h3>Title</h3>
-                    </div>
-                    <div class="modal-body">
-                        <span>Something occured</span>
-                    </div>
-                    <div class="modal-footer">
-                        <button id="dismiss-button" class="modal-button" onclick="App.dismissModals()">Ok</button>
-                    </div>
-                </div>
-            </div>
-            <div id="newSpreadsheet-modal" class="modal modal-hidden">
-                <div class="modal-blackout"></div>
-                <div class="modal-container">
-                    <div class="modal-header">
-                        <h3>New Spreadsheet</h3>
-                    </div>
-                    <div class="modal-body">
-                        <input placeholder="Spreadsheet Name" spa-model="newSpreadsheet" spa-property="name value" spa-input="name value">
-                    </div>
-                    <div class="modal-footer">
-                        <button class="modal-button" onclick="App.dismissModals()">Cancel</button>
-                        <button class="modal-button" spa-model="newSpreadsheet" spa-handler="createSpreadsheet onclick">Create</button>
-                    </div>
-                </div>
-            </div>
-            <div id="importTransactions-modal" class="modal modal-hidden">
-                <span class="spa-templates" hidden>
+          </div>
+        </div>
+      </div>
+      <div id="error-modal" class="modal modal-hidden">
+        <div class="modal-blackout"></div>
+        <div class="modal-container">
+          <div class="modal-header">
+            <h3>Error</h3>
+          </div>
+          <div class="modal-body">
+            <span>An unknown error has occured</span>
+          </div>
+          <div class="modal-footer">
+            <button class="modal-button" onclick="App.dismissModals()">Ok</button>
+          </div>
+        </div>
+      </div>
+      <div id="confirm-modal" class="modal modal-hidden">
+        <div class="modal-blackout"></div>
+        <div class="modal-container">
+          <div class="modal-header">
+            <h3>Error</h3>
+          </div>
+          <div class="modal-body">
+            <span>An unknown error has occured</span>
+          </div>
+          <div class="modal-footer">
+            <button id="deny-button" class="modal-button" onclick="App.dismissModals()">Cancel</button>
+            <button id="confirm-button" class="modal-button" onclick="App.dismissModals()">Ok</button>
+          </div>
+        </div>
+      </div>
+      <div id="ok-modal" class="modal modal-hidden">
+        <div class="modal-blackout"></div>
+        <div class="modal-container">
+          <div class="modal-header">
+            <h3>Title</h3>
+          </div>
+          <div class="modal-body">
+            <span>Something occured</span>
+          </div>
+          <div class="modal-footer">
+            <button id="dismiss-button" class="modal-button" onclick="App.dismissModals()">Ok</button>
+          </div>
+        </div>
+      </div>
+      <div id="newSpreadsheet-modal" class="modal modal-hidden">
+        <div class="modal-blackout"></div>
+        <div class="modal-container">
+          <div class="modal-header">
+            <h3>New Spreadsheet</h3>
+          </div>
+          <div class="modal-body">
+            <input placeholder="Spreadsheet Name" spa-model="newSpreadsheet" spa-property="name value" spa-input="name value">
+          </div>
+          <div class="modal-footer">
+            <button class="modal-button" onclick="App.dismissModals()">Cancel</button>
+            <button class="modal-button" spa-model="newSpreadsheet" spa-handler="createSpreadsheet onclick">Create</button>
+          </div>
+        </div>
+      </div>
+      <div id="importTransactions-modal" class="modal modal-hidden">
+        <span class="spa-templates" hidden="">
                     <select>
                         <optgroup spa-template="ImportFileSelector">
                             <option spa-model="_" spa-property="id value;name innerHTML" spa-trigger="id bind {{currentSelection.spreadsheet}}"></option>
                         </optgroup>
                     </select>
                 </span>
-                <div class="modal-blackout"></div>
-                <div class="modal-container">
-                    <div class="modal-header">
-                        <h3>Import Transactions</h3>
-                    </div>
-                    <div class="modal-body">
-                        <label>Import file:</label>
-                        <select spa-model="import.files" spa-property="selectedId value" spa-input="selectedId value">
-                            <option value="" selected disabled hidden>&lt;Pick a CSV&gt;</option> 
-                            <optgroup label="CSVs" spa-model="import.files" spa-list="list ImportFileSelector">
-                            </optgroup>
-                        </select>
-                        <label>Import profile:</label>
-                        <select spa-model="import.profiles" spa-property="selectedId value" spa-input="selectedId value">
-                            <option value="" selected disabled hidden>&lt;Pick a profile&gt;</option> 
-                            <optgroup label="Profile Names" spa-model="import.profiles" spa-list="list ImportFileSelector">
-                            </optgroup>
-                        </select>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="modal-button" onclick="App.dismissModals()">Cancel</button>
-                        <button class="modal-button" spa-model="import" spa-handler="importTransactions onclick">Import</button>
-                    </div>
-                </div>
-            </div>
+        <div class="modal-blackout"></div>
+        <div class="modal-container">
+          <div class="modal-header">
+            <h3>Import Transactions</h3>
+          </div>
+          <div class="modal-body">
+            <label>Import file:</label>
+            <select spa-model="import.files" spa-property="selectedId value" spa-input="selectedId value">
+              <option value="" selected="" disabled="" hidden="">&lt;Pick a CSV&gt;</option>
+              <optgroup label="CSVs" spa-model="import.files" spa-list="list ImportFileSelector">
+              </optgroup>
+            </select>
+            <label>Import profile:</label>
+            <select spa-model="import.profiles" spa-property="selectedId value" spa-input="selectedId value">
+              <option value="" selected="" disabled="" hidden="">&lt;Pick a profile&gt;</option>
+              <optgroup label="Profile Names" spa-model="import.profiles" spa-list="list ImportFileSelector">
+              </optgroup>
+            </select>
+          </div>
+          <div class="modal-footer">
+            <button class="modal-button" onclick="App.dismissModals()">Cancel</button>
+            <button class="modal-button" spa-model="import" spa-handler="importTransactions onclick">Import</button>
+          </div>
         </div>
-        
-        <script>
-            function updateSelectElement(spaEvent) {
-                console.log(spa.getModels());
-                const model = spa.getModel(spaEvent.modelName);
-                console.log(model);
-                model[spaEvent.propName] = spaEvent.value;
-                console.log("sync up");
-            } 
-            try{
-                App.dismissModals();
-                App.start();
-                
-            }
-            catch(error)
-            {
-                App.logError(error);
-            }
-        </script>
-    </body>
+      </div>
+    </div>
+    <script>
+      function updateSelectElement(spaEvent) {
+        console.log(spa.getModels());
+        const model = spa.getModel(spaEvent.modelName);
+        console.log(model);
+        model[spaEvent.propName] = spaEvent.value;
+        console.log("sync up");
+      }
+      try {
+        App.dismissModals();
+        App.start();
+      } catch (error) {
+        App.logError(error);
+      }
+    </script>
+  </body>
 </html>
