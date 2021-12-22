@@ -1,7 +1,7 @@
 {
   "name": "Megan Money",
   "short_name": "MeganMoney",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0000FF",
   "theme_color": "#0000FF",
