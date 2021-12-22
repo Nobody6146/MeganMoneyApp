@@ -96,7 +96,7 @@ Storage.updateSettings = function(settings) {
         setting.value = settings[keys[i]];
         req.push(setting);
     }
-    return Query.settings.update(settings)
+    return Query.settings.update(req)
     .then(res => Util.copyObj(res));
 }
 Storage.getLabels = function(){

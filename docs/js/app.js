@@ -74,6 +74,9 @@ function App() {
         App.displayWaitingModal();
         Spreadsheet.create(name)
         .then(res => {
+            return App.updateTheme();
+        })
+        .then(res => {
             App.dismissModals();
         })
         .then(res => {
@@ -299,13 +302,7 @@ App.signedIn = async function(user) {
         };
 
         await App.updateSheetsList();
-        try{
-            const settings = await Storage.getSettings();
-            App.models.theme = {
-                primaryColor: settings.themePrimaryColor
-            };
-        }
-        catch{}
+        await App.updateTheme();
         App.route();
     }
     catch(err)
@@ -344,8 +341,15 @@ App.updateSheetsList = async function() {
     
     return Spreadsheet.listSheets()
     .then(res => {
-        App.models.spreadsheets.list = res
-        console.log(res);
+        App.models.spreadsheets.list = res;
+    });
+}
+App.updateTheme = async function() {
+    return Storage.getSettings()
+    .then(settings => {
+        App.models.theme = {
+            primaryColor: settings.themePrimaryColor
+        };
     });
 }
 
@@ -356,10 +360,7 @@ App.updateSelection = async function(spaEvent) {
     Storage.clearCache();
 
     try{
-        const settings = await Storage.getSettings();
-        App.models.theme = {
-            primaryColor: settings.themePrimaryColor
-        };
+        await App.updateTheme();
     }
     catch{}
     App.route();

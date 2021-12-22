@@ -172,23 +172,22 @@ Spreadsheet.create = function(name) {
             ]);
         })
         .then(() => {
-            const date = new Date().toISOString();
-            let positiveAmount = new Setting();
-            return Storage.updateSettings([
-                {
-                    positiveAmount: 1,
-                    goodTransaction: 1,
-                    themePrimaryColor: "royalblue"
-                }
-            ]);
+            return Storage.updateSettings({
+                positiveAmount: 1,
+                goodTransaction: 1,
+                themePrimaryColor: "royalblue"
+            });
         })
         .then(() => {
             const date = new Date().toISOString();
             let label = new Label();
             label.id = 1;
-            label.name = "None";
+            label.name = "Default";
             label.color = "#FF0000";
             return Storage.updateLabels([label]);
+        })
+        .then(res => {
+            return App.updateTheme();
         })
         .then(() => {
             resolve(result);
