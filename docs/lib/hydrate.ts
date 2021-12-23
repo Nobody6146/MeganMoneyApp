@@ -93,45 +93,39 @@ class HydrateAppOptions
 //********Events********//
 type HydrateModelEventType = 'bind' | "unbind" | 'set' | 'handler';
 
-class HydrateModelEvent
-{
+class HydrateModelEvent {
     app: HydrateApp;
-    model: any;
-    state: any;
-    modelName: string;
-    propName: string;
-    prop: any;
-    previousValue: any;
-    type: HydrateModelEventType;
     target: Element;
-    value: any;
-    varName: string;
-    rootModelName: string;
+    type: HydrateModelEventType;
 
-    constructor(model: any, modelName: string, propName:string, previousValue: any, type: HydrateModelEventType, target: Element, value: any, app: HydrateApp)
+    model: any;
+    modelName: string;
+    rootModelName: string;
+    state: any;
+    previousState: any;
+    propName: string;
+    propFullName: string;
+    prop: any;
+
+    constructor(type:HydrateModelEventType, model: any, previousState: any, propName: string, target: Element, app: HydrateApp, modelName?: string)
     {
         this.app = app;
-        this.model = model;
-        this.state = !(model instanceof Object) || model[app.options.models.stateProperty] === undefined
-            ? model : model[app.options.models.stateProperty];
-        this.modelName = modelName;
-        this.propName = propName;
-        this.previousValue = previousValue;
-        this.type = type;
         this.target = target;
-
-        if(value === undefined) {
-            if(model != null && modelName !== app.options.models.wildcardOperator && propName !== app.options.models.wildcardOperator)
-                this.value = propName ? model[propName] : model;
-            else
-                this.value = null;
-        } else {
-            this.value = value;
-        }
-
-        let nameParts = modelName != null ? modelName.split(app.options.models.nestedOperator) : null;
-        this.varName = nameParts == null ? null : nameParts[nameParts.length - 1];
-        this.rootModelName = nameParts == null ? null : nameParts[0];
+        this.type = type;
+        this.model = model;
+        this.modelName = app.name(model) ?? modelName;
+        this.rootModelName = this.modelName != null 
+            ? this.modelName.split(app.options.models.nestedOperator)[0]
+            : undefined;
+        this.state = app.state(model) ?? model;
+        this.previousState = previousState;
+        this.propName = propName;
+        this.propFullName = (this.modelName != null && this.propName != null)
+            ? this.modelName + app.options.models.nestedOperator + this.propName
+            : undefined;
+        this.prop = (typeof this.state === 'object')
+            ? this.state[this.propName]
+            : undefined;
     }
 }
 
@@ -140,7 +134,7 @@ class HydrateModelEvent
 class HydrateApp
 {
     #models: Map<string, any>;
-    #eventListeners : Map<HydrateModelEventType, ((event: HydrateModelEvent) => any)[]>;
+    #eventListeners : Map<string, ((event: HydrateModelEvent) => any)[]>;
     #observer : MutationObserver;
 
     options: HydrateAppOptions;
@@ -158,20 +152,19 @@ class HydrateApp
         );
         this.root.addEventListener("input", this.#inputListener.bind(this));
 
-        let eventsList = ["ontouchstart", "ontouchmove", "ontouchend", "ontouchcancel"];
-        //Add even listeners for every "on" event
-        for(const key in document.body)
-        {
-            if (key.match(/^on(.*)/) && !eventsList.includes(key))
-                eventsList.push(key);
-        }
         //Start the router
-        this.root.addEventListener("click", this.routeListener.bind(this));
-        window.addEventListener("popstate", this.historyListener.bind(this));
+        // this.root.addEventListener("click", this.routeListener.bind(this));
+        // window.addEventListener("popstate", this.historyListener.bind(this));
     }
 
+    //=============== Helpful methods ==============/
+    /** Gets the root element the app is attached to */
     get root(): Element {
         return document.querySelector(this.options.dom.root);
+    }
+    /** Gets the full directive name for the HTML attribute */
+    attribute(name: string) {
+        return `${this.options.dom.attributePrefix}_${name}`;
     }
 
     //******** Basic model methods ********//
@@ -212,16 +205,18 @@ class HydrateApp
     }
     /** Retrieves the state associated with the search. Search can be a string (name of model) or the state of the model */
     state(search: string | object) : any {
-        let model = this.#getModel(search)
+        let model = (typeof search === "object")
+            ? search : this.#getModel(search)
         if(model == null)
             return model;
         return model[this.options.models.stateProperty];
     }
     /** Gets the model name of the search. Search can be a string (name of model) or the state of the model */
     name(search: string | object) : string {
-        let model = this.#getModel(search)
+        let model = (typeof search === "object")
+            ? search : this.#getModel(search)
         if(model == null)
-            return model;
+            return undefined;
         return model[this.options.models.nameProperty];
     }
     /** Bind a new model to the framework */
@@ -266,13 +261,13 @@ class HydrateApp
             {
                 Object.keys(state).forEach(key => {
                     triggerUnbind(name + "." + key, model[key]);
-                    let event = new HydrateModelEvent(undefined, name, key, JSON.parse(JSON.stringify(model)), "unbind", app.root, undefined, app);
-                    app.triggerEvent(app.root, event);
+                    // let event = new HydrateModelEvent(undefined, name, key, JSON.parse(JSON.stringify(model)), "unbind", app.root, undefined, app);
+                    // app.triggerEvent(app.root, event);
                 });
             }
             
-            let event = new HydrateModelEvent(undefined, name, app.options.models.wildcardOperator, JSON.parse(JSON.stringify(model)), "unbind", app.root, undefined, app);
-            app.triggerEvent(app.root, event);
+            // let event = new HydrateModelEvent(undefined, name, app.options.models.wildcardOperator, JSON.parse(JSON.stringify(model)), "unbind", app.root, undefined, app);
+            // app.triggerEvent(app.root, event);
         }
         triggerUnbind(name, model);
 
@@ -300,21 +295,26 @@ class HydrateApp
             Object.keys(model).forEach(prop => {
                 //Do a get to force the proxy to be created
                 let property = model[prop];
-                let event = new HydrateModelEvent(model, name, prop, null, "bind", app.root, undefined, app);
-                app.triggerEvent(app.root, event);
+                // let event = new HydrateModelEvent(model, name, prop, null, "bind", app.root, undefined, app);
+                // app.triggerEvent(app.root, event);
                 app.refresh(property);
             });
     }
     
     //******** Basic model methods ********//
     /** Adds an even listener for the following events */
-    addEventListener(eventType: HydrateModelEventType, handler: (event: HydrateModelEvent) => any) : ((event: HydrateModelEvent) => any)
+    listen(search : string | object, handler: (event: HydrateModelEvent) => any) : (event: HydrateModelEvent) => any
     {
-        let listeners = this.#eventListeners.get(eventType);
+        const model = this.model(search);
+        const name = this.name(model);
+        if(name == null)
+            return null;
+
+        let listeners = this.#eventListeners.get(name);
         if(listeners === undefined)
         {
             listeners = [];
-            this.#eventListeners.set(eventType, listeners);
+            this.#eventListeners.set(name, listeners);
         }
         if(listeners.includes(handler))
             return handler;
@@ -322,20 +322,29 @@ class HydrateApp
         return handler;
     }
     /** Removes an event listener */
-    removeEventListener(eventType: HydrateModelEventType, handler: (event: HydrateModelEvent) => any)
+    unlisten(search: string | object, handler: (event: HydrateModelEvent) => any) : (event: HydrateModelEvent) => any
     {
-        let listeners = this.#eventListeners.get(eventType);
-        if(listeners === undefined)
-            return;
+        const model = this.model(search);
+        const name = this.name(model);
+        if(name == null)
+            return null;
 
+        const listeners = this.#eventListeners.get(name);
+        if(listeners == null)
+            return null;
         let index = listeners.indexOf(handler);
         if(index === -1)
             return;
         listeners.splice(index, 1);
     }
-    removeEventListeners() {
-        this.#eventListeners.clear();
+
+    //******** Advance features methods ********//
+    /** Updates the DOM using the provided model event */
+    dom(target: Element, event: HydrateModelEvent)
+    {
+        //Determine how to update our DOM
     }
+    //====================
 
     /** Search can be a string (name of model) or the state of the model */
     #getModel(search): any {
@@ -347,10 +356,6 @@ class HydrateApp
         return [...this.#models].find(([key, value]) => model === value)[0];
     }
 
-    /** Gets the full directive name for the HTML attribute */
-    attribute(name: string) {
-        return `${this.options.dom.attributePrefix}_${name}`;
-    }
     //Internal
     #makeProxy(data: any, name: string, replace: boolean) {
         const app = this;
@@ -423,9 +428,9 @@ class HydrateApp
                 //     app.refreshModel(model, name + "." + prop, app);
                 // }
                 let propName = (typeof prop === 'symbol') ? prop.toString() : prop;
-                let event = new HydrateModelEvent(proxy, name, propName, previousValue, previousValue === undefined ? "bind" : "set", app.root, undefined, app);
-                //Make sure the properties exist so we can bind to dom and find them
-                app.triggerEvent(app.root, event);
+                // let event = new HydrateModelEvent(proxy, name, propName, previousValue, previousValue === undefined ? "bind" : "set", app.root, undefined, app);
+                // //Make sure the properties exist so we can bind to dom and find them
+                // app.triggerEvent(app.root, event);
                 
                 return true;
             },
@@ -439,13 +444,13 @@ class HydrateApp
                     delete models[prop];
                     obj[prop] = property;
                     let propName = (typeof prop === 'symbol') ? prop.toString() : prop;
-                    let event = new HydrateModelEvent(proxy, name, propName, property, "unbind", app.root, undefined, app);
-                    app.triggerEvent(app.root, event);
-                    if(!(property instanceof Object)) {
-                        //This won't trigger automatically for sol values because there is no proxy to call generic event
-                        event = new HydrateModelEvent(proxy, name + "." + propName, app.options.models.wildcardOperator, property, "unbind", app.root, undefined, app);
-                        app.triggerEvent(app.root, event);
-                    }
+                    // let event = new HydrateModelEvent(proxy, name, propName, property, "unbind", app.root, undefined, app);
+                    // app.triggerEvent(app.root, event);
+                    // if(!(property instanceof Object)) {
+                    //     //This won't trigger automatically for sol values because there is no proxy to call generic event
+                    //     event = new HydrateModelEvent(proxy, name + "." + propName, app.options.models.wildcardOperator, property, "unbind", app.root, undefined, app);
+                    //     app.triggerEvent(app.root, event);
+                    // }
                   }
                   return true;
             }
@@ -456,61 +461,157 @@ class HydrateApp
         this.refresh(proxy);
         if(!replace) {
             //Trigger a new event that the new data is being bound
-            let event = new HydrateModelEvent(proxy, name, app.options.models.wildcardOperator, null, "bind", app.root, undefined, app);
-            app.triggerEvent(app.root, event);
+            // let event = new HydrateModelEvent(proxy, name, app.options.models.wildcardOperator, null, "bind", app.root, undefined, app);
+            // app.triggerEvent(app.root, event);
         }
         return proxy;
     }
-
-    triggerEvent(target: Element, event: HydrateModelEvent)
-    {
-        //Call our callback functions
-        let listeners = this.#eventListeners.get(event.type) ?? [];
-        [...listeners].forEach(handler => {
-            handler(event);
-        });
-
-        //The parent is the element to start affecting at
-        //It's time to update the DOM
-        let domSelectors = this.#buildModelQuerySelectors(event.modelName, event.propName);
-        domSelectors.forEach(s => {
-            let children = target.querySelectorAll(s);
-            //this.updateDomForChild(parent, event);
-            //children.forEach(x => this.updateDomForChild(x, event));
-        });
-    }
-
-    #buildModelQuerySelectors(modelName : string, propName: string) : string[] {
-        return this.#buildModelSelectors(modelName).map(x => {
-            return "[" + this.attribute(this.options.dom.attributes.model) + "='" + x + "']"
-        });
-    }
-    #buildModelSelectors(modelName : string) : string[] {
-        const parts = modelName.split(".");
-        let selectors = [modelName];
-        if(parts.length == 1)
-        {
-            if(parts[0] !== this.options.models.wildcardOperator)
-                selectors.push(this.options.models.wildcardOperator);
-            return selectors;
-        }
+    testGenerateEventsgenerateEvents(type: HydrateModelEventType, target: Element, modelName: string, model: any, propName: string, searchKey: string, previousState: any) : HydrateModelEvent[] {
         
-        for(let i = 0; i < parts.length; i++)
+        return this.#generateEvents(type, target, modelName, model, propName, searchKey, previousState);
+    }
+    #dispatchModelEvents(type: HydrateModelEventType, target: Element, model: any, propName: string, previousState: any) {
+        const attribute = this.attribute(this.options.dom.attributes.model);
+        //Get the DOM elements subscriped for model events
+        let listeningElements = [...this.root.querySelectorAll(`[${attribute}]`)];
+        let eventListeners = [...this.#eventListeners.keys()];
+        //Figure out all the models we're subscribed to
+        const searchKeys =  listeningElements.map(x => this.attribute(attribute))
+            .concat(eventListeners);
+        //Determine all the base handlers to notify (using a distinct list)
+        let eventMappings = new Map<string, HydrateModelEvent[]>();
+        [...new Set(searchKeys)].forEach(key => {
+            eventMappings.set(key, 
+                this.#generateEvents(type, target, this.name(model), model, propName, key, previousState)
+                    .filter(x => x.model === undefined));
+        });
+
+        //Fire all the event handlers
+        eventListeners.forEach(key =>
         {
-            let selector = [... parts];
-            selector[i] = this.options.models.wildcardOperator;
-            selectors.push(selector.join("."));
+            let events = eventMappings.get(key);
+            if(events == null)
+                return;
+            this.#eventListeners.get(key).forEach(handler => {
+                events.forEach(event => {
+                    handler(event);
+                });
+            }); 
+        })
+
+        //Trigger all the DOM updates
+        listeningElements.forEach(element => {
+            let events = eventMappings.get(element.attributes[attribute]);
+            if(events == null)
+                return;
+            events.forEach(event => {
+                this.dom(element, event);
+            });
+        })
+    }
+    #generateEvents(type: HydrateModelEventType, target: Element, modelName: string, model: any, propName: string, searchKey: string, previousState: any) : HydrateModelEvent[] {
+        const nameParts = modelName.split(this.options.models.nestedOperator);
+        const keyParts = searchKey.split(this.options.models.nestedOperator);
+
+        //match on any combination of nested models with wildcards such as: "people.profile.*.info.*""
+        if(nameParts.length > keyParts.length)
+        {
+            //This even won't concern you
+            if(nameParts.length > keyParts.length + 1 && propName !== undefined)
+            {
+                return [];
+            }
         }
-        selectors.push(this.options.models.wildcardOperator);
-        return selectors;
+        else if(keyParts.length > nameParts.length)
+        {
+            //We are a child of this change, propogate to the correct event that would happen to the child
+            switch(type)
+            {
+                case "bind":
+                case "set":
+                    type = "bind";
+                    break;
+            }
+        }
+
+        let name = "";
+        let i = 0;
+        let localModel = model;
+        let localPreviousState = previousState;
+        for(i; i < keyParts.length; i++)
+        {
+            //If we match, then continue checking for full name
+            
+            if(i > 0 && keyParts[i] === this.options.models.wildcardOperator)
+            {
+                let reference = type == 'unbind' ? localPreviousState : localModel;
+                if(typeof reference === 'object' && reference != null)
+                {
+                    return Object.keys(reference).flatMap(x => {
+                        let parts = keyParts.map(x => x);
+                        parts[i] = x;
+                        let key = parts.join(this.options.models.nestedOperator);
+                        return this.#generateEvents(type, target, modelName, model, propName, key, previousState);
+                    });
+                }
+                else
+                {
+                    return [];
+                }
+            }
+            else if((i == 0 && keyParts[0] === this.options.models.wildcardOperator)
+                || i >= nameParts.length || keyParts[i] === nameParts[i])
+            {
+                if(i == 0)
+                {
+                    name = nameParts[i];
+                }
+                else
+                {
+                    name += this.options.models.nestedOperator + keyParts[i];
+                    let x = keyParts[i];
+                    localModel = typeof localModel === 'object' && localModel != null
+                        ? localModel[x]
+                        : undefined;
+                    localPreviousState = typeof localPreviousState === 'object' && localPreviousState != null
+                        ? localPreviousState[x]
+                        : undefined;
+                }
+            }
+            else
+            {
+                //no match
+                return [];
+            }
+            
+
+            //We reached the end of the model name where the event happens, if this doesn't match then ignore
+            if(nameParts.length < keyParts.length && i == nameParts.length - 1)
+            {
+                if(keyParts[i + 1] !== propName && keyParts[i + 1] !== this.options.models.wildcardOperator)
+                {
+                    //We've reached the end and the prop name doesn't match our path, so ignore
+                    return [];
+                }
+            }
+        }
+
+        if(keyParts.length === nameParts.length)
+        {
+            return [new HydrateModelEvent(type, localModel, localPreviousState, propName, target, this)];
+        }
+        else
+        {
+            return [new HydrateModelEvent(type, localModel, localPreviousState, undefined, target, this, name)]
+        };
     }
     #mutationCallback(mutations, observer) {
         let bindUpdates = [];
         mutations.forEach( m => {
-            if(m.type === 'childList')
-                m.addedNodes.forEach(n => this.bindNodeRecursive(n));
-            if(m.type === 'attributes') 
-                this.bindNodeRecursive(m.target);
+            // if(m.type === 'childList')
+            //     m.addedNodes.forEach(n => this.bindNodeRecursive(n));
+            // if(m.type === 'attributes') 
+            //     this.bindNodeRecursive(m.target);
         });
     }
     #inputListener(event) {

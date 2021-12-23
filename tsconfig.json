@@ -2,6 +2,6 @@
     "compilerOptions": {
         "target": "esnext",
         "watch": true,
-        "lib": ["DOM", "ES2017"]
+        "lib": ["DOM", "ES2017", "DOM.Iterable", "ES2019"]
     }
 }

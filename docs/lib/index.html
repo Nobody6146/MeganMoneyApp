@@ -9,7 +9,15 @@
         <script>
             let hydrate = new HydrateApp();
             let state = {greeting: "Hello world"};
-            hydrate.bind("state", state);
+            let model = hydrate.bind("state", state);
+            model.data = {
+                person: {
+                    contact: {
+                        firstName: "Bob",
+                        lastName: "Builder"
+                    }
+                }
+            };
         </script>
     </body>
 </html>
