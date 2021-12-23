@@ -62,6 +62,49 @@ DashboardView.prototype.getRoute = function() {
 DashboardView.prototype.getHTML = function() {
    return fetch("views/dashboard/index.html");
 }
+//=========== settings ================//
+function SettingsView() {
+    MeganMoneyView.call(this, "Settings");
+}
+SettingsView.prototype = Object.create(MeganMoneyView.prototype);
+SettingsView.prototype.getRoute = function() {
+    return "#settings";
+}
+SettingsView.prototype.getHTML = function() {
+    return fetch("views/home/settings.html");
+}
+SettingsView.prototype.getData = function(req, res) {
+    return Storage.getSettings()
+    .then(settings => {
+        return {
+            settings: settings,
+            options: {
+                transactionTypes: Enums.transactionType.map(x => {
+                   return {id: x.value, name: x.name}
+                })
+            },
+            buttons: {
+                save: {
+                    onclick: function(domEvent, spaEvent) {
+                        App.displayWaitingModal();
+                        
+                        Storage.updateSettings(settings)
+                        .then(res => {
+                            return App.refreshSettings();
+                        })
+                        .then(res => {
+                            App.displayOkModal("Success", `Settings have been saved!`, "Dismiss");
+                        })
+                        .catch(err => {
+                            App.dismissModals();
+                            App.logError(err);
+                        });
+                    }
+                }
+            }
+        };
+    });
+}
 
 //============ Labels ============//
 function LabelsView() {

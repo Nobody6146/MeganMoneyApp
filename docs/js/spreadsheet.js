@@ -175,7 +175,7 @@ Spreadsheet.create = function(name) {
             return Storage.updateSettings({
                 positiveAmount: 1,
                 goodTransaction: 1,
-                themePrimaryColor: "royalblue"
+                themePrimaryColor: "#4169e1"
             });
         })
         .then(() => {
@@ -187,7 +187,7 @@ Spreadsheet.create = function(name) {
             return Storage.updateLabels([label]);
         })
         .then(res => {
-            return App.updateTheme();
+            return App.refreshSettings();
         })
         .then(() => {
             resolve(result);

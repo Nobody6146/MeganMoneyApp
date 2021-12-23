@@ -1,0 +1,53 @@
+<div hidden>
+    <select>
+        <optgroup spa-template="GoodTransactionOptionsTemplate">
+            <option spa-model="_" spa-property="id value;name innerHTML" spa-trigger="id bind {{page.data.settings.goodTransaction}}"></option>
+        </optgroup>
+    </select>
+    <select>
+        <optgroup spa-template="PositiveAmountOptionsTemplate">
+            <option spa-model="_" spa-property="id value;name innerHTML" spa-trigger="id bind {{page.data.settings.positiveAmount}}"></option>
+        </optgroup>
+    </select>
+</div>
+
+<h2 style="width: 100%; text-align: center; color: var(--theme-color-accent)">Settings</h2>
+
+<table>
+    <tbody style="width: 100%">
+        <tr>
+            <td>Positive Amount</td>
+            <td>
+                <select spa-model="page.data.settings" spa-property="positiveAmount value" spa-input="positiveAmount value">
+                    <option value="" selected="" disabled="" hidden="">&lt;Pick Option&gt;</option>
+                    <optgroup label="options" spa-model="page.data.options" spa-list="transactionTypes PositiveAmountOptionsTemplate">
+                    </optgroup>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>Good Transaction</td>
+            <td>
+                <select spa-model="page.data.settings" spa-property="goodTransaction value" spa-input="goodTransaction value">
+                    <option value="" selected="" disabled="" hidden="">&lt;Pick Option&gt;</option>
+                    <optgroup label="options" spa-model="page.data.options" spa-list="transactionTypes GoodTransactionOptionsTemplate">
+                    </optgroup>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>Color</td>
+            <td>
+                <input type="color" spa-model="page.data.settings" spa-property="themePrimaryColor value" spa-input="themePrimaryColor value" />
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<br />
+
+<div style="display: flex; justify-content: center; width: 100%;">
+    <div style="display: flex; justify-content: center;">
+        <button class="button-accent" style="margin: 0 10px" spa-model="page.data.buttons.save" spa-handler="onclick onclick">Save</button>
+    </div>
+</div>

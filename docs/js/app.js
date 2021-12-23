@@ -74,7 +74,7 @@ function App() {
         App.displayWaitingModal();
         Spreadsheet.create(name)
         .then(res => {
-            return App.updateTheme();
+            return App.refreshSettings();
         })
         .then(res => {
             App.dismissModals();
@@ -143,6 +143,7 @@ App.loadPages = function() {
     let transactionsView = new TransactionsView();
     let transactionsEditView = new TransactionsEditView();
     let transactionsSummaryView = new TransactionsSummaryView();
+    let settingsView = new SettingsView();
 
     //Bind routes
     spa.addRoute(".*", (req, res, next) => {
@@ -160,6 +161,7 @@ App.loadPages = function() {
     spa.addRoute(transactionsView.getRoute(), transactionsView.render.bind(transactionsView));
     spa.addRoute(transactionsEditView.getRoute(), transactionsEditView.render.bind(transactionsEditView));
     spa.addRoute(transactionsSummaryView.getRoute(), transactionsSummaryView.render.bind(transactionsSummaryView));
+    spa.addRoute(settingsView.getRoute(), settingsView.render.bind(settingsView));
     spa.addRoute(".*", (req, res, next) => {
         res.spa.navigateTo(dashboardView.getRoute());
     });
@@ -302,7 +304,7 @@ App.signedIn = async function(user) {
         };
 
         await App.updateSheetsList();
-        await App.updateTheme();
+        await App.refreshSettings();
         App.route();
     }
     catch(err)
@@ -344,7 +346,13 @@ App.updateSheetsList = async function() {
         App.models.spreadsheets.list = res;
     });
 }
-App.updateTheme = async function() {
+
+App.viewSettings = function() {
+    App.showSideMenu(false);
+    return App.route(SettingsView.prototype.getRoute());
+}
+
+App.refreshSettings = async function() {
     return Storage.getSettings()
     .then(settings => {
         App.models.theme = {
@@ -360,7 +368,7 @@ App.updateSelection = async function(spaEvent) {
     Storage.clearCache();
 
     try{
-        await App.updateTheme();
+        await App.refreshSettings();
     }
     catch{}
     App.route();
