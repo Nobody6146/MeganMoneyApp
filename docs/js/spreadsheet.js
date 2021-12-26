@@ -28,7 +28,7 @@ Spreadsheet.create = function(name) {
         },
         {
             name: "Labels",
-            columns: ["id","createDate","updateDate","isActive","name","color","paymentMethod","primaryCategory","secondaryCategory"]
+            columns: ["id","createDate","updateDate","isActive","name","color","paymentMethod","primaryCategory","subCategory"]
         },
         {
             name: "Transactions",

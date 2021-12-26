@@ -410,11 +410,12 @@ TransactionsEditView.prototype.getData = function(req) {
         };
         const addSubCategory = function(event, spaEvent) {
             event.preventDefault();
-            let label = labelGroups.subCategories.find(x => x.name == spaEvent.model.selected);
+            let name = spaEvent.model.selected.trim();
+            let label = labelGroups.subCategories.find(x => x.name == name);
             if(!label)
             {
                 label = new Label();
-                label.name = spaEvent.data.selected;
+                label.name = name;
             }
             spaEvent.model.selected = null;
             if(spaEvent.data.categories.findIndex(x => x.name == label.name) !== -1)
@@ -558,7 +559,8 @@ TransactionsSummaryView.prototype.getHTML = function() {
                         let chartOptions = new ChartOptions(rawChart.title, 200);
                         let chartData = Object.keys(rawChart.data).map(label => {
                             let data = rawChart.data[label];
-                            return new ChartData(label, data.value.toFixed(0), data.color);
+                            let value = (typeof data.value === 'number') ? data.value : Number.parseFloat(data.value.toString()); 
+                            return new ChartData(label, value.toFixed(0), data.color);
                         });
                         let chart = new Chart(chartDiv, chartOptions);
                         chart.drawPieChart(chartData);

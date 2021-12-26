@@ -482,8 +482,7 @@ class HydrateApp
         let eventMappings = new Map<string, HydrateModelEvent[]>();
         [...new Set(searchKeys)].forEach(key => {
             eventMappings.set(key, 
-                this.#generateEvents(type, target, this.name(model), model, propName, key, previousState)
-                    .filter(x => x.model === undefined));
+                this.#generateEvents(type, target, this.name(model), model, propName, key, previousState));
         });
 
         //Fire all the event handlers
@@ -595,6 +594,10 @@ class HydrateApp
                 }
             }
         }
+
+        //We didn't find any relevant data for the model based on the search key
+        if(localModel === undefined && previousState === undefined)
+            return [];
 
         if(keyParts.length === nameParts.length)
         {

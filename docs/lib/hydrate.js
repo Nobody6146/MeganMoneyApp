@@ -411,8 +411,7 @@ class HydrateApp {
         //Determine all the base handlers to notify (using a distinct list)
         let eventMappings = new Map();
         [...new Set(searchKeys)].forEach(key => {
-            eventMappings.set(key, this.#generateEvents(type, target, this.name(model), model, propName, key, previousState)
-                .filter(x => x.model === undefined));
+            eventMappings.set(key, this.#generateEvents(type, target, this.name(model), model, propName, key, previousState));
         });
         //Fire all the event handlers
         eventListeners.forEach(key => {
@@ -502,6 +501,9 @@ class HydrateApp {
                 }
             }
         }
+        //We didn't find any relevant data for the model based on the search key
+        if (localModel === undefined && previousState === undefined)
+            return [];
         if (keyParts.length === nameParts.length) {
             return [new HydrateModelEvent(type, localModel, localPreviousState, propName, target, this)];
         }
