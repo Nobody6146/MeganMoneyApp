@@ -134,7 +134,11 @@ class HydrateApp {
     }
     /** Gets the full directive name for the HTML attribute */
     attribute(name) {
-        return `${this.options.dom.attributePrefix}_${name}`;
+        return `${this.options.dom.attributePrefix}-${name}`;
+    }
+    /** Makes a copy of a JS object */
+    copy(value) {
+        return JSON.parse(JSON.stringify(value));
     }
     //******** Basic model methods ********//
     /** Returns a list of the models bound to the framework */
@@ -146,7 +150,7 @@ class HydrateApp {
         let model;
         let name;
         if (typeof search === "string") {
-            model = this.#getModel(search);
+            model = this.#getRootModel(search);
             name = search;
         }
         else {
@@ -170,7 +174,7 @@ class HydrateApp {
     /** Retrieves the state associated with the search. Search can be a string (name of model) or the state of the model */
     state(search) {
         let model = (typeof search === "object")
-            ? search : this.#getModel(search);
+            ? search : this.model(search);
         if (model == null)
             return model;
         return model[this.options.models.stateProperty];
@@ -178,7 +182,7 @@ class HydrateApp {
     /** Gets the model name of the search. Search can be a string (name of model) or the state of the model */
     name(search) {
         let model = (typeof search === "object")
-            ? search : this.#getModel(search);
+            ? search : this.model(search);
         if (model == null)
             return undefined;
         return model[this.options.models.nameProperty];
@@ -190,10 +194,11 @@ class HydrateApp {
         if (state == null)
             state = {};
         //If this model already exist, unbind it first
-        if (this.#models[name] != undefined)
+        if (this.#models.get(name) != undefined)
             this.unbind(name);
-        let proxy = this.#makeProxy(state, name, false);
+        let proxy = this.#makeProxy(state, name);
         this.#models.set(name, proxy);
+        this.dispatch("bind", proxy, undefined, undefined, this.root);
         return proxy;
     }
     /** Unbinds the model from the framework related to the search. Search can be a string (name of model) or the state of the model */
@@ -201,7 +206,7 @@ class HydrateApp {
         let model;
         let name;
         if (typeof search === "string") {
-            model = this.#getModel(search);
+            model = this.model(search);
             name = search;
         }
         else {
@@ -211,52 +216,14 @@ class HydrateApp {
         let nameParts = name.split(this.options.models.nestedOperator);
         const rootModelName = nameParts[0];
         this.#models.delete(rootModelName);
-        const app = this;
-        //Remove and unbind all of it's children
-        let triggerUnbind;
-        triggerUnbind = function (name, state) {
-            if (state instanceof Object) {
-                Object.keys(state).forEach(key => {
-                    triggerUnbind(name + "." + key, model[key]);
-                    // let event = new HydrateModelEvent(undefined, name, key, JSON.parse(JSON.stringify(model)), "unbind", app.root, undefined, app);
-                    // app.triggerEvent(app.root, event);
-                });
-            }
-            // let event = new HydrateModelEvent(undefined, name, app.options.models.wildcardOperator, JSON.parse(JSON.stringify(model)), "unbind", app.root, undefined, app);
-            // app.triggerEvent(app.root, event);
-        };
-        triggerUnbind(name, model);
-        //Remove the listeners
-        // this.boundModelListeners.forEach(x => {
-        //     if(x.options.modelName.match("^" + rootModelName + "(\\.|$)"))
-        //         this.removeModelListener(x.options, x.callback);
-        // });
-    }
-    refresh(search) {
-        const app = this;
-        if (search == null || search === "") {
-            //Refresh all models
-            this.models.forEach(x => this.refresh(x));
-            return;
-        }
-        const model = this.model(search);
-        const name = this.name(model);
-        if (name == null)
-            return;
-        if (model instanceof Object)
-            Object.keys(model).forEach(prop => {
-                //Do a get to force the proxy to be created
-                let property = model[prop];
-                // let event = new HydrateModelEvent(model, name, prop, null, "bind", app.root, undefined, app);
-                // app.triggerEvent(app.root, event);
-                app.refresh(property);
-            });
+        this.dispatch("unbind", model, undefined, this.state(model), this.root);
     }
     //******** Basic model methods ********//
     /** Adds an even listener for the following events */
     listen(search, handler) {
-        const model = this.model(search);
-        const name = this.name(model);
+        const name = (typeof search === "string")
+            ? search
+            : this.name(search);
         if (name == null)
             return null;
         let listeners = this.#eventListeners.get(name);
@@ -271,8 +238,9 @@ class HydrateApp {
     }
     /** Removes an event listener */
     unlisten(search, handler) {
-        const model = this.model(search);
-        const name = this.name(model);
+        const name = (typeof search === "string")
+            ? search
+            : this.name(search);
         if (name == null)
             return null;
         const listeners = this.#eventListeners.get(name);
@@ -285,128 +253,21 @@ class HydrateApp {
     }
     //******** Advance features methods ********//
     /** Updates the DOM using the provided model event */
-    dom(target, event) {
+    dom(event, target) {
+        if (target == null)
+            target = this.root;
         //Determine how to update our DOM
     }
-    //====================
-    /** Search can be a string (name of model) or the state of the model */
-    #getModel(search) {
-        if (typeof search === 'string')
-            return this.#models.get(search);
-        return [...this.#models.values()].find(x => x === search);
-    }
-    #getModelMapKey(model) {
-        return [...this.#models].find(([key, value]) => model === value)[0];
-    }
-    //Internal
-    #makeProxy(data, name, replace) {
-        const app = this;
-        let models = {};
-        let proxy;
-        let bindOrGet = function (obj, prop, replace) {
-            if (obj[prop] instanceof Date || !(obj[prop] instanceof Object))
-                return null;
-            let propName = (typeof prop === 'symbol') ? prop.toString() : prop;
-            let modelName = name + "." + propName;
-            let model = models[prop];
-            if (!replace && model)
-                return model;
-            else {
-                //Make proxy
-                models[prop] = app.#makeProxy(obj[prop], modelName, replace);
-                //Trigger bind event (we know this is a bind, because setting value triggers first event)
-                //app.triggerEvent(app.getRootElement(), event);
-                return models[prop];
-            }
-        };
-        proxy = new Proxy(data, {
-            get(obj, prop) {
-                if (prop === app.options.models.stateProperty)
-                    return obj;
-                if (prop === app.options.models.nameProperty)
-                    return name;
-                if (prop === 'toJson') {
-                    if (typeof obj.toJson === 'function')
-                        return obj.toJson;
-                    else
-                        return function () { return JSON.stringify(this); };
-                }
-                //Make sure functions apply to work on original prop by binding
-                // if (typeof obj[prop] === 'function') {
-                //     return obj[prop].bind(obj);
-                // }
-                //var type = 
-                if (typeof obj[prop] === 'object' && obj[prop] != null) {
-                    let model = bindOrGet(obj, prop, false);
-                    //let model = null;
-                    return model ? model : obj[prop];
-                }
-                else
-                    return obj[prop];
-            },
-            set: function (obj, prop, value) {
-                let previousValue = obj[prop];
-                //Don't allow DOM update to trigger if value is up-to-date or this model is no longer bound
-                if (app.model(name) !== proxy) {
-                    obj[prop] = value;
-                    return true;
-                }
-                //Delete old values for prop so we get unbind events
-                let model = bindOrGet(obj, prop, false);
-                // if(previousValue instanceof Object)
-                //     Object.keys(previousValue).forEach(x => delete model[x]);
-                obj[prop] = value == null || typeof value !== "object" ? value : value[app.options.models.stateProperty] ? value[app.options.models.stateProperty] : value;
-                bindOrGet(obj, prop, true);
-                // if(model) {
-                //     app.refreshModel(model, name + "." + prop, app);
-                // }
-                let propName = (typeof prop === 'symbol') ? prop.toString() : prop;
-                // let event = new HydrateModelEvent(proxy, name, propName, previousValue, previousValue === undefined ? "bind" : "set", app.root, undefined, app);
-                // //Make sure the properties exist so we can bind to dom and find them
-                // app.triggerEvent(app.root, event);
-                return true;
-            },
-            deleteProperty: function (obj, prop) {
-                if (prop in obj) {
-                    let property = JSON.parse(JSON.stringify(obj[prop]));
-                    let model = models[prop];
-                    if (property instanceof Object)
-                        Object.keys(property).forEach(x => { if (model)
-                            delete model[x]; });
-                    delete obj[prop];
-                    delete models[prop];
-                    obj[prop] = property;
-                    let propName = (typeof prop === 'symbol') ? prop.toString() : prop;
-                    // let event = new HydrateModelEvent(proxy, name, propName, property, "unbind", app.root, undefined, app);
-                    // app.triggerEvent(app.root, event);
-                    // if(!(property instanceof Object)) {
-                    //     //This won't trigger automatically for sol values because there is no proxy to call generic event
-                    //     event = new HydrateModelEvent(proxy, name + "." + propName, app.options.models.wildcardOperator, property, "unbind", app.root, undefined, app);
-                    //     app.triggerEvent(app.root, event);
-                    // }
-                }
-                return true;
-            }
-        });
-        //Now lets trigger nested proxies for all the properties
-        this.refresh(proxy);
-        if (!replace) {
-            //Trigger a new event that the new data is being bound
-            // let event = new HydrateModelEvent(proxy, name, app.options.models.wildcardOperator, null, "bind", app.root, undefined, app);
-            // app.triggerEvent(app.root, event);
-        }
-        return proxy;
-    }
-    testGenerateEventsgenerateEvents(type, target, modelName, model, propName, searchKey, previousState) {
-        return this.#generateEvents(type, target, modelName, model, propName, searchKey, previousState);
-    }
-    #dispatchModelEvents(type, target, model, propName, previousState) {
+    /** Generates and dispatches events and sends it to HTML and listeners */
+    dispatch(type, model, propName, previousState, target) {
+        if (target == null)
+            target = this.root;
         const attribute = this.attribute(this.options.dom.attributes.model);
         //Get the DOM elements subscriped for model events
         let listeningElements = [...this.root.querySelectorAll(`[${attribute}]`)];
         let eventListeners = [...this.#eventListeners.keys()];
         //Figure out all the models we're subscribed to
-        const searchKeys = listeningElements.map(x => this.attribute(attribute))
+        const searchKeys = listeningElements.map(x => x.attributes[attribute].value)
             .concat(eventListeners);
         //Determine all the base handlers to notify (using a distinct list)
         let eventMappings = new Map();
@@ -426,13 +287,102 @@ class HydrateApp {
         });
         //Trigger all the DOM updates
         listeningElements.forEach(element => {
-            let events = eventMappings.get(element.attributes[attribute]);
+            let events = eventMappings.get(element.attributes[attribute].value);
             if (events == null)
                 return;
             events.forEach(event => {
-                this.dom(element, event);
+                this.dom(event, element);
             });
         });
+    }
+    //====================
+    /** Search can be a string (name of model) or the state of the model */
+    #getRootModel(search) {
+        let model;
+        let name;
+        let nameParts;
+        if (typeof search === "string") {
+            nameParts = search.split(this.options.models.nestedOperator);
+            model = this.#models.get(nameParts[0]);
+            if (model == null)
+                return undefined;
+            name = search;
+        }
+        else {
+            name = this.name(search);
+            if (name == null)
+                return undefined;
+            nameParts = name.split(this.options.models.nestedOperator);
+            model = this.#models.get(nameParts[0]);
+            if (model == null)
+                return undefined;
+        }
+        return model;
+    }
+    //Internal
+    #makeProxy(data, name) {
+        const app = this;
+        let models = {};
+        let proxy;
+        let bindOrGet = function (obj, prop) {
+            if (obj[prop] instanceof Date || !(obj[prop] instanceof Object))
+                return null;
+            let propName = (typeof prop === 'symbol') ? prop.toString() : prop;
+            let modelName = name + "." + propName;
+            let model = models[prop];
+            if (model !== undefined)
+                return model;
+            else {
+                //Make proxy
+                models[prop] = app.#makeProxy(obj[prop], modelName);
+                return models[prop];
+            }
+        };
+        proxy = new Proxy(data, {
+            get(obj, prop) {
+                if (prop === app.options.models.stateProperty)
+                    return obj;
+                if (prop === app.options.models.nameProperty)
+                    return name;
+                if (prop === 'toJson') {
+                    if (typeof obj.toJson === 'function')
+                        return obj.toJson;
+                    else
+                        return function () { return JSON.stringify(this); };
+                }
+                if (typeof obj[prop] === 'object' && obj[prop] != null) {
+                    let model = bindOrGet(obj, prop);
+                    //let model = null;
+                    return model ? model : obj[prop];
+                }
+                else
+                    return obj[prop];
+            },
+            set: function (obj, prop, value) {
+                let previousValue = obj[prop];
+                obj[prop] = value;
+                models = {};
+                //Don't allow DOM update to trigger if value is up-to-date or this model is no longer bound
+                if (app.model(name) !== proxy) {
+                    return true;
+                }
+                let propName = (typeof prop === 'symbol') ? prop.toString() : prop;
+                app.dispatch("set", proxy, propName, previousValue, app.root);
+                return true;
+            },
+            deleteProperty: function (obj, prop) {
+                if (prop in obj) {
+                    let property = obj[prop];
+                    delete obj[prop];
+                    if (models[prop] != undefined)
+                        delete models[prop];
+                    let propName = (typeof prop === 'symbol') ? prop.toString() : prop;
+                    app.dispatch("unbind", proxy, propName, property, app.root);
+                }
+                return true;
+            }
+        });
+        return proxy;
     }
     #generateEvents(type, target, modelName, model, propName, searchKey, previousState) {
         const nameParts = modelName.split(this.options.models.nestedOperator);

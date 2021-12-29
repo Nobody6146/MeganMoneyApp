@@ -8,6 +8,7 @@
         <h1 h-model="state" h-attribute="greeting innerHTML"></h1>
         <script>
             let hydrate = new HydrateApp();
+            hydrate.listen("state", (event) => console.log(event));
             let state = {greeting: "Hello world"};
             let model = hydrate.bind("state", state);
             model.data = {
@@ -18,6 +19,7 @@
                     }
                 }
             };
+            //hydrate.dispatch("bind", model, "data", hydrate.state(model)['data'], hydrate.root);
         </script>
     </body>
 </html>
