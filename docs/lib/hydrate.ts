@@ -39,11 +39,12 @@ class HydrateHTMLAttributeOptions
     callback = "callback"; //Calls a property function
     handler = "handler"; //Fires a callback when the "on" event of the element is fired
     //init = "init"; //Create's the model if it doesn't exist of the name, retrieves it, then fires the code inside if any. Sets to true if ran. Runs first time initialized
+    function = "function";
     script = "script"; //Sets a model property equal to the innerText of the element
     //Templating and Components
     expression = "expression";
     template = "template"; //template changes queries user of the templates then regenerate
-    component = "component"; //="[PROP] [TEMPLATE] [object | array | dictionary | map]?"
+    component = "component"; //="[PROP] [TEMPLATE] [property | model | array | dictionary | map]?"
     append = "append"; //Tells a component to append a value rather than replace it
     //Execution manipulation
     repeat = "repeat";
@@ -130,6 +131,26 @@ class HydrateModelEvent {
 }
 
 //****************//
+class HydrateDomAttributeArguments
+{
+    arg1: string;
+    arg2: string;
+    arg3: string;
+
+    constructor(arg1, arg2, arg3) {
+        this.arg1 = arg1;
+        this.arg2 = arg2;
+        this.arg3 = arg3;
+    }
+}
+class HydrateDomUpdateAttributes
+{
+    model: HydrateDomAttributeArguments[];
+    attribute: HydrateDomAttributeArguments[];
+    property: HydrateDomAttributeArguments[];
+}
+
+//****************//
 
 class HydrateApp
 {
@@ -178,6 +199,8 @@ class HydrateApp
     }
     /** Retrieves the model resulting from the search. Search can be a string (name of model) or the state of the model */
     model(search : string | object): any {
+        if(search === undefined)
+            return undefined;
         let model : any;
         let name : string;
         if(typeof search === "string")
@@ -217,6 +240,8 @@ class HydrateApp
     }
     /** Gets the model name of the search. Search can be a string (name of model) or the state of the model */
     name(search: string | object) : string {
+        if(name === undefined)
+            return undefined;
         let model = (typeof search === "object")
             ? search : this.model(search)
         if(model == null)
@@ -301,15 +326,10 @@ class HydrateApp
     }
 
     //******** Advance features methods ********//
-    /** Updates the DOM using the provided model event */
-    dom(event: HydrateModelEvent, target?: Element)
-    {
-        if(target == null)
-            target = this.root;
-        //Determine how to update our DOM
-    }
     /** Generates and dispatches events and sends it to HTML and listeners */
     dispatch(type: HydrateModelEventType,  model: any, propName: string, previousState: any, target?: Element) {
+        console.log(`${type} ${JSON.stringify(model)} ${propName} ${JSON.stringify(previousState)} ${target}`);
+
         if(target == null)
             target = this.root;
 
@@ -346,7 +366,7 @@ class HydrateApp
             if(events == null)
                 return;
             events.forEach(event => {
-                this.dom(event, element);
+                this.#dom(event, element);
             });
         })
     }
@@ -512,12 +532,15 @@ class HydrateApp
                 {
                     name += this.options.models.nestedOperator + keyParts[i];
                     let x = keyParts[i];
-                    localModel = typeof localModel === 'object' && localModel != null
-                        ? localModel[x]
-                        : undefined;
-                    localPreviousState = typeof localPreviousState === 'object' && localPreviousState != null
-                        ? localPreviousState[x]
-                        : undefined;
+                    if(i >= nameParts.length)
+                    {
+                        localModel = typeof localModel === 'object' && localModel != null
+                            ? localModel[x]
+                            : undefined;
+                        localPreviousState = typeof localPreviousState === 'object' && localPreviousState != null
+                            ? localPreviousState[x]
+                            : undefined;
+                    }
                 }
             }
             else
@@ -544,6 +567,7 @@ class HydrateApp
 
         if(keyParts.length === nameParts.length)
         {
+            console.log("made it" + `${type}, ${JSON.stringify(localModel)}, ${JSON.stringify(localPreviousState)}, ${propName}, ${target},`);
             return [new HydrateModelEvent(type, localModel, localPreviousState, propName, target, this)];
         }
         else
@@ -570,5 +594,161 @@ class HydrateApp
                 model[args[0]] = event.target[args[1]];
             }
         }
+    }
+    /** Updates the DOM using the provided model event */
+    #dom(event: HydrateModelEvent, target?: Element)
+    {
+        if(target == null)
+            target = this.root;
+        let partOfTemplate = target;
+        do {
+            //Don't trigger an event if it's inside a template
+            if(partOfTemplate.attributes[this.attribute(this.options.dom.attributes.template)])
+                return;
+            partOfTemplate = partOfTemplate.parentElement;
+        }while(partOfTemplate !== null);
+
+        //Determine how to update our DOM
+        var attributes = this.#loadDomAttributes(target);
+        let responded = false;
+        if(attributes.attribute !== undefined)
+            responded = this.#updateHTMLAttribute(target, event, attributes) || responded;
+        if(attributes.property !== undefined)
+            responded = this.#updateHTMLProperty(target, event, attributes) || responded;
+    }
+    #loadDomAttributes(target : Element): HydrateDomUpdateAttributes {
+        const app = this;
+        let getArguments = function(target: Element, name: string): HydrateDomAttributeArguments[] {
+            let attribute = target.attributes[app.attribute(name)];
+            if(attribute === undefined)
+                return undefined;
+            return app.#splitAttributeValue(attribute.value);
+        }
+        let attributes = new HydrateDomUpdateAttributes();
+        attributes.model = getArguments(target, this.options.dom.attributes.model);
+        attributes.attribute = getArguments(target, this.options.dom.attributes.attribute);
+        attributes.property = getArguments(target, this.options.dom.attributes.property);
+        return attributes;
+    }
+    #splitAttributeValue(value: string): HydrateDomAttributeArguments[] {
+        if(value == null)
+            return undefined;
+        //return value.split(/({{.+}})?;/).filter(x => x !== undefined).map(x => { 
+        return value.split(';').map(x => { 
+            //return x.trim().split(/\s+/)
+            let baseParams = x.trim();
+            //splits on two whitespaces: "[model_prop] [el_prop] [THIRD_PARAM]"
+            let regParams = baseParams.match(/[^\s]+\s+[^\s]+\s+/);
+            if(!regParams)
+            {
+                let args = baseParams.split(/\s+/);
+                return new HydrateDomAttributeArguments(args[0], args[1], undefined);
+            }
+            //We have a 3rd argument for a replacement/insertion value to stick into arg 2 field
+            let result = baseParams.split(/\s+/);
+            return new HydrateDomAttributeArguments(result[0], result[1], baseParams.substring(regParams[0].length));
+        });
+    }
+    //******** HTML DOM MANIUPLATIONS *****//
+    #updateHTMLAttribute(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+        const wildcard = this.options.models.wildcardOperator;
+        let updated = false;
+        attributes.attribute.forEach(arg => {
+            //We don't have 
+            if(arg.arg2 === undefined)
+            {
+                console.error(`missing arg2 for hydrate attribute for element ${target}`);
+                return;
+            }
+            
+            //Determine the value we need to evaluate
+            let prop;
+            if(event.propName === undefined)
+            {
+                if(arg.arg1 !== wildcard)
+                {
+                    if(typeof event.state === 'object')
+                    {
+                        prop = event.state[arg.arg1];
+                    }
+                    else
+                        return;
+                }
+                else {
+                    if(typeof event.state === 'object')
+                    {
+                        let keys = Object.keys(event.state);
+                        prop = keys[keys.length - 1];
+                    }
+                    else
+                        prop = event.state;
+                }
+            }
+            else if(arg.arg1 === event.propName)
+                prop = event.prop;
+            //This event doesn't match, so ignore
+            else 
+                return;
+                
+            if(target.attributes[arg.arg2]?.value !== prop)
+            {
+                target.setAttribute(arg.arg2, prop);
+            }
+            updated = true;
+            
+        });
+        return updated;
+    }
+    #updateHTMLProperty(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+        const wildcard = this.options.models.wildcardOperator;
+        let updated = false;
+        attributes.property.forEach(arg => {
+            //We don't have 
+            if(arg.arg2 === undefined)
+            {
+                console.error(`missing arg2 for hydrate property for element ${target}`);
+                return;
+            }
+
+            //Determine the value we need to evaluate
+            let prop;
+            if(event.propName === undefined)
+            {
+                if(arg.arg1 !== wildcard)
+                {
+                    if(typeof event.state === 'object')
+                    {
+                        prop = event.state[arg.arg1];
+                    }
+                    else
+                        return;
+                }
+                else {
+                    if(typeof event.state === 'object')
+                    {
+                        let keys = Object.keys(event.state);
+                        prop = keys[keys.length - 1];
+                    }
+                    else
+                        prop = event.state;
+                }
+            }
+            else if(arg.arg1 === event.propName)
+                prop = event.prop;
+            //This event doesn't match, so ignore
+            else 
+                return;
+            
+            if(target[arg.arg2] !== prop)
+            {
+                target[arg.arg2] = prop;
+                // console.log(event);
+                // console.log(target);
+                // console.log(prop);
+            }
+            updated = true;
+            
+        });
+        return updated;
     }
 }

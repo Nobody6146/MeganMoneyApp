@@ -5,10 +5,15 @@
         <script src="hydrate.js"></script>
     </head>
     <body>
-        <h1 h-model="state" h-attribute="greeting innerHTML"></h1>
+        <h1 h-model="state" h-attribute="greeting name" h-property="greeting innerHTML"></h1>
+        <p>
+            <span h-model="state.data.person.contact" h-property="firstName innerHTML"></span>
+            <span h-model="state.data.person.contact" h-property="lastName innerHTML"></span>
+        </p>
         <script>
             let hydrate = new HydrateApp();
             hydrate.listen("state", (event) => console.log(event));
+            hydrate.listen("state.data.person.contact", (event) => {console.log("wow!"); console.log(event)});
             let state = {greeting: "Hello world"};
             let model = hydrate.bind("state", state);
             model.data = {
@@ -21,5 +26,36 @@
             };
             //hydrate.dispatch("bind", model, "data", hydrate.state(model)['data'], hydrate.root);
         </script>
+<!-- 
+
+        <template>
+            <script h-model="_" h-script="*" h-static>
+                (event) => {
+                    
+                }
+            </script>
+            <select>
+                <optgroup spa-template="OptGroupTemplate">
+                    <option spa-model="_" spa-property="value value;name innerHTML" spa-trigger="value bind {{page.data.transaction.transactionTypeId}}"></option>
+                </optgroup>
+            </select>
+            <select h-template="SelectTemplate">
+                <option value="" selected="" disabled="" hidden="" h-model="_" h-attribute="selectText innerHTML">&lt;Pick Payment Method&gt;</option>
+                <optgroup label="Select" h-model="_" spa-list="options OptGroupTemplate">
+                </optgroup>
+            </select>
+
+            <select spa-model="page.data.transaction" spa-property="primaryCategoryId value" spa-input="primaryCategoryId value">
+                <option value="" selected="" disabled="" hidden="">&lt;Pick Payment Method&gt;</option>
+                <optgroup label="Category" spa-model="page.data.labels" spa-list="primaryCategories PrimaryCategoriesListTemplate">
+                </optgroup>
+            </select>
+
+            <select>
+                <optgroup spa-template="OptGroupTemplate">
+                    <option spa-model="_" spa-property="value value;name innerHTML" spa-trigger="value bind {{page.data.transaction.transactionTypeId}}"></option>
+                </optgroup>
+            </select>
+        </template> -->
     </body>
 </html>
