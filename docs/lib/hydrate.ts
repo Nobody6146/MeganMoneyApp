@@ -2,7 +2,6 @@
     With Hydrate, you can bring life to your static web page by utilizing dynamic data and reactive components.
     Powerful features like 2-way modeling binding and client-side routing come out of the box.
 */
-
 //******** Options *******//
 /** Options for Hydrate DOM manipulation */
 class HydrateDOMOptions
@@ -34,20 +33,18 @@ class HydrateHTMLAttributeOptions
     event = "event";
     static = "static"; //Executes once
     condition = "condition";
-    discrete = "discrete"; //Only allow discrete prop binding meaning "won't respond to generic wildcard events" def="model|prop|true|false", defaults to true
+
     //Functions and execution
     callback = "callback"; //Calls a property function
     handler = "handler"; //Fires a callback when the "on" event of the element is fired
-    //init = "init"; //Create's the model if it doesn't exist of the name, retrieves it, then fires the code inside if any. Sets to true if ran. Runs first time initialized
     function = "function";
-    script = "script"; //Sets a model property equal to the innerText of the element
+    dispatch = "dispatch"; //dispatches an event
+
     //Templating and Components
     expression = "expression";
     template = "template"; //template changes queries user of the templates then regenerate
-    component = "component"; //="[PROP] [TEMPLATE] [property | model | array | dictionary | map]?"
-    append = "append"; //Tells a component to append a value rather than replace it
-    //Execution manipulation
-    repeat = "repeat";
+    initialize = "initialize" //script called on creation of template to initialize component
+    component = "component"; //="[PROP] [TEMPLATE] [property | model | array | dictionary | map]?
 }
 /** Options for Hydrate routing */
 class HydrateRouterOptions
@@ -92,10 +89,10 @@ class HydrateAppOptions
 }
 //****************//
 //********Events********//
-type HydrateModelEventType = 'bind' | "unbind" | 'set' | 'handler';
+type HydrateModelEventType = 'bind' | "unbind" | 'set' | 'callback' | 'function' | 'handler' | 'script';
 
 class HydrateModelEvent {
-    app: HydrateApp;
+    hydrate: HydrateApp;
     target: Element;
     type: HydrateModelEventType;
 
@@ -108,21 +105,21 @@ class HydrateModelEvent {
     propFullName: string;
     prop: any;
 
-    constructor(type:HydrateModelEventType, model: any, previousState: any, propName: string, target: Element, app: HydrateApp, modelName?: string)
+    constructor(type:HydrateModelEventType, model: any, previousState: any, propName: string, target: Element, hydrate: HydrateApp, modelName?: string)
     {
-        this.app = app;
+        this.hydrate = hydrate;
         this.target = target;
         this.type = type;
         this.model = model;
-        this.modelName = app.name(model) ?? modelName;
+        this.modelName = hydrate.name(model) ?? modelName;
         this.rootModelName = this.modelName != null 
-            ? this.modelName.split(app.options.models.nestedOperator)[0]
+            ? this.modelName.split(hydrate.options.models.nestedOperator)[0]
             : undefined;
-        this.state = app.state(model) ?? model;
+        this.state = hydrate.state(model) ?? model;
         this.previousState = previousState;
         this.propName = propName;
         this.propFullName = (this.modelName != null && this.propName != null)
-            ? this.modelName + app.options.models.nestedOperator + this.propName
+            ? this.modelName + hydrate.options.models.nestedOperator + this.propName
             : undefined;
         this.prop = (typeof this.state === 'object')
             ? this.state[this.propName]
@@ -148,6 +145,40 @@ class HydrateDomUpdateAttributes
     model: HydrateDomAttributeArguments[];
     attribute: HydrateDomAttributeArguments[];
     property: HydrateDomAttributeArguments[];
+    toggle: HydrateDomAttributeArguments[];
+    class: HydrateDomAttributeArguments[];
+    delete: HydrateDomAttributeArguments[];
+
+    input: HydrateDomAttributeArguments[];
+
+    callback: HydrateDomAttributeArguments[];
+    handler: HydrateDomAttributeArguments[];
+    function: HydrateDomAttributeArguments[];
+    script: HydrateDomAttributeArguments[];
+    dispatch: HydrateDomAttributeArguments[];
+
+    expression: HydrateDomAttributeArguments[];
+    template: HydrateDomAttributeArguments[];
+    initialize: HydrateDomAttributeArguments[];
+    component: HydrateDomAttributeArguments[];
+
+    event: HydrateDomAttributeArguments[];
+    static: HydrateDomAttributeArguments[];
+    condition: HydrateDomAttributeArguments[];
+}
+
+class HydrateDeterminePropResult
+{
+    success: boolean;
+    prop: any;
+    propName: string;
+
+    constructor(prop?:any, propName?: string)
+    {
+        this.success  = prop === undefined ? false : true;
+        this.prop = prop;
+        this.propName = propName;
+    }
 }
 
 //****************//
@@ -328,14 +359,12 @@ class HydrateApp
     //******** Advance features methods ********//
     /** Generates and dispatches events and sends it to HTML and listeners */
     dispatch(type: HydrateModelEventType,  model: any, propName: string, previousState: any, target?: Element) {
-        console.log(`${type} ${JSON.stringify(model)} ${propName} ${JSON.stringify(previousState)} ${target}`);
-
         if(target == null)
             target = this.root;
 
         const attribute = this.attribute(this.options.dom.attributes.model);
-        //Get the DOM elements subscriped for model events
-        let listeningElements = [...this.root.querySelectorAll(`[${attribute}]`)];
+        //Get the DOM elements subscriped for model events that isn't part of a template model (requires model insertion)
+        let listeningElements = [...this.root.querySelectorAll(`[${attribute}]:not([${attribute}~=${this.options.models.insertionOperator}])`)];
         let eventListeners = [...this.#eventListeners.keys()];
         //Figure out all the models we're subscribed to
         const searchKeys =  listeningElements.map(x => x.attributes[attribute].value)
@@ -567,7 +596,6 @@ class HydrateApp
 
         if(keyParts.length === nameParts.length)
         {
-            console.log("made it" + `${type}, ${JSON.stringify(localModel)}, ${JSON.stringify(localPreviousState)}, ${propName}, ${target},`);
             return [new HydrateModelEvent(type, localModel, localPreviousState, propName, target, this)];
         }
         else
@@ -585,14 +613,14 @@ class HydrateApp
         });
     }
     #inputListener(event) {
-        let attr = event.target.attributes[this.attribute(this.options.dom.attributes.model)];
-        let input = event.target.attributes[this.attribute(this.options.dom.attributes.model)];
-        if(attr != null && input != null) {
-            let model = this.model(attr.value);
-            if(model) {
-                let args = input.value.split(" ");
-                model[args[0]] = event.target[args[1]];
-            }
+        var attributes = this.#loadDomAttributes(event.target);
+        if(attributes.model !== undefined && attributes.input !== undefined) {
+            let model = this.model(attributes.model[0].arg1);
+            if(model === undefined && (typeof model == "object"))
+                return;
+            attributes.input.forEach(arg => {
+                model[arg.arg1] = event.target[arg.arg2];
+            });
         }
     }
     /** Updates the DOM using the provided model event */
@@ -615,6 +643,19 @@ class HydrateApp
             responded = this.#updateHTMLAttribute(target, event, attributes) || responded;
         if(attributes.property !== undefined)
             responded = this.#updateHTMLProperty(target, event, attributes) || responded;
+        if(attributes.toggle !== undefined)
+            responded = this.#updateHTMLToggleAttribute(target, event, attributes) || responded;
+        if(attributes.class !== undefined)
+            responded = this.#updateHTMLToggleClass(target, event, attributes) || responded;
+        if(attributes.delete !== undefined)
+            responded = this.#updateHTMLDeleteElement(target, event, attributes) || responded;
+
+        if(attributes.callback !== undefined)
+            responded = this.#updateHTMLCallback(target, event, attributes) || responded;
+        if(attributes.handler !== undefined)
+            responded = this.#updateHTMLHandler(target, event, attributes) || responded;
+        if(attributes.function !== undefined)
+            responded = this.#updateHTMLFunction(target, event, attributes) || responded;
     }
     #loadDomAttributes(target : Element): HydrateDomUpdateAttributes {
         const app = this;
@@ -628,6 +669,15 @@ class HydrateApp
         attributes.model = getArguments(target, this.options.dom.attributes.model);
         attributes.attribute = getArguments(target, this.options.dom.attributes.attribute);
         attributes.property = getArguments(target, this.options.dom.attributes.property);
+        attributes.toggle = getArguments(target, this.options.dom.attributes.toggle);
+        attributes.class = getArguments(target, this.options.dom.attributes.class);
+        attributes.delete = getArguments(target, this.options.dom.attributes.delete);
+
+        attributes.input = getArguments(target, this.options.dom.attributes.input);
+
+        attributes.callback = getArguments(target, this.options.dom.attributes.callback);
+        attributes.handler = getArguments(target, this.options.dom.attributes.handler);
+        attributes.function = getArguments(target, this.options.dom.attributes.function);
         return attributes;
     }
     #splitAttributeValue(value: string): HydrateDomAttributeArguments[] {
@@ -650,49 +700,57 @@ class HydrateApp
         });
     }
     //******** HTML DOM MANIUPLATIONS *****//
-    #updateHTMLAttribute(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #determinePropValue(event:HydrateModelEvent, arg: HydrateDomAttributeArguments):HydrateDeterminePropResult {
         const wildcard = this.options.models.wildcardOperator;
+        if(event.propName === undefined)
+        {
+            if(arg.arg1 !== wildcard)
+            {
+                if(typeof event.state === 'object')
+                {
+                    return new HydrateDeterminePropResult(event.state[arg.arg1], arg.arg1);
+                }
+                else
+                    return new HydrateDeterminePropResult();
+            }
+            else {
+                if(typeof event.state === 'object')
+                {
+                    let keys = Object.keys(event.state);
+                    let key = keys.length - 1;
+                    return new HydrateDeterminePropResult(keys[key], key.toString());
+                }
+                else
+                    return new HydrateDeterminePropResult(event.state, undefined);
+            }
+        }
+        else if(arg.arg1 === event.propName)
+            return new HydrateDeterminePropResult(event.prop, event.propName);
+        //This event doesn't match, so ignore
+        else 
+            return new HydrateDeterminePropResult();
+    }
+    #createLocalizedEvent(target: Element, event:HydrateModelEvent, propName: string) {
+        return new HydrateModelEvent(event.type, event.model, event.previousState, propName, target, event.hydrate);
+    }
+    #updateHTMLAttribute(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
         let updated = false;
         attributes.attribute.forEach(arg => {
             //We don't have 
             if(arg.arg2 === undefined)
             {
                 console.error(`missing arg2 for hydrate attribute for element ${target}`);
-                return;
+                return false;
             }
             
             //Determine the value we need to evaluate
-            let prop;
-            if(event.propName === undefined)
-            {
-                if(arg.arg1 !== wildcard)
-                {
-                    if(typeof event.state === 'object')
-                    {
-                        prop = event.state[arg.arg1];
-                    }
-                    else
-                        return;
-                }
-                else {
-                    if(typeof event.state === 'object')
-                    {
-                        let keys = Object.keys(event.state);
-                        prop = keys[keys.length - 1];
-                    }
-                    else
-                        prop = event.state;
-                }
-            }
-            else if(arg.arg1 === event.propName)
-                prop = event.prop;
-            //This event doesn't match, so ignore
-            else 
-                return;
+            let propResult = this.#determinePropValue(event, arg);
+            if(propResult.success === false)
+                return false;
                 
-            if(target.attributes[arg.arg2]?.value !== prop)
+            if(target.attributes[arg.arg2]?.value !== propResult.prop)
             {
-                target.setAttribute(arg.arg2, prop);
+                target.setAttribute(arg.arg2, propResult.prop);
             }
             updated = true;
             
@@ -700,51 +758,176 @@ class HydrateApp
         return updated;
     }
     #updateHTMLProperty(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
-        const wildcard = this.options.models.wildcardOperator;
         let updated = false;
         attributes.property.forEach(arg => {
             //We don't have 
             if(arg.arg2 === undefined)
             {
                 console.error(`missing arg2 for hydrate property for element ${target}`);
-                return;
+                return false;
             }
 
             //Determine the value we need to evaluate
-            let prop;
-            if(event.propName === undefined)
-            {
-                if(arg.arg1 !== wildcard)
-                {
-                    if(typeof event.state === 'object')
-                    {
-                        prop = event.state[arg.arg1];
-                    }
-                    else
-                        return;
-                }
-                else {
-                    if(typeof event.state === 'object')
-                    {
-                        let keys = Object.keys(event.state);
-                        prop = keys[keys.length - 1];
-                    }
-                    else
-                        prop = event.state;
-                }
-            }
-            else if(arg.arg1 === event.propName)
-                prop = event.prop;
-            //This event doesn't match, so ignore
-            else 
-                return;
+            let propResult = this.#determinePropValue(event, arg);
+            if(propResult.success === false)
+                return false;
             
-            if(target[arg.arg2] !== prop)
+            if(target[arg.arg2] !== propResult.prop)
             {
-                target[arg.arg2] = prop;
-                // console.log(event);
-                // console.log(target);
-                // console.log(prop);
+                target[arg.arg2] = propResult.prop;
+            }
+            updated = true;
+            
+        });
+        return updated;
+    }
+    #updateHTMLToggleAttribute(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+        let updated = false;
+        attributes.toggle.forEach(arg => {
+            //We don't have 
+            if(arg.arg2 === undefined)
+            {
+                console.error(`missing arg2 for hydrate toggle for element ${target}`);
+                return false;
+            }
+            
+            //Determine the value we need to evaluate
+            let propResult = this.#determinePropValue(event, arg);
+            if(propResult.success === false)
+                return false;
+              
+            if(target.hasAttribute(arg.arg2) !== (propResult.prop === true))
+            {
+                target.toggleAttribute(arg.arg2, propResult.prop === true);
+                updated = true;
+            }
+        });
+        return updated;
+    }
+    #updateHTMLToggleClass(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+        let updated = false;
+        attributes.class.forEach(arg => {
+            //We don't have 
+            if(arg.arg2 === undefined)
+            {
+                console.error(`missing arg2 for hydrate toggle class for element ${target}`);
+                return false;
+            }
+            
+            //Determine the value we need to evaluate
+            let propResult = this.#determinePropValue(event, arg);
+            if(propResult.success === false)
+                return false;
+              
+            if(target.classList.contains(arg.arg2) !== (propResult.prop === true))
+            {
+                target.classList.toggle(arg.arg2, propResult.prop === true);
+                updated = true;
+            }
+        });
+        return updated;
+    }
+    #updateHTMLDeleteElement(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+        let updated = false;
+        attributes.delete.forEach(arg => {
+            //Determine the value we need to evaluate
+            let propResult = this.#determinePropValue(event, arg);
+            if(propResult.success === false)
+                return false;
+              
+            if(propResult.prop === true)
+            {
+                target.parentElement.removeChild(target);
+                updated = true;
+            }
+        });
+        return updated;
+    }
+    #updateHTMLCallback(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+        let updated = false;
+        attributes.callback.forEach(arg => {
+            //We don't have 
+            if(arg.arg2 === undefined)
+            {
+                console.error(`missing arg2 for hydrate callback for element ${target}`);
+                return false;
+            }
+            //Determine the value we need to evaluate
+            let propResult = this.#determinePropValue(event, arg);
+            if(propResult.success === false)
+                return false;
+            
+            let propNames = propResult.propName !== undefined
+                ? [propResult.propName]
+                : (typeof event.state === "object") ? Object.keys(event.state) : [undefined];
+            let callback = (typeof event.state === "object") ? event.state[arg.arg2] : undefined;
+            if(callback == null || (typeof callback !== "function"))
+                return false;
+            propNames.forEach(propName => {
+                let localEvent = this.#createLocalizedEvent(target, event, propName);
+                callback(localEvent, arg.arg3);
+                updated = true;
+            });
+        });
+        return updated;
+    }
+    #updateHTMLFunction(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+        let updated = false;
+        attributes.function.forEach(arg => {
+            //We don't have 
+            if(arg.arg2 === undefined)
+            {
+                console.error(`missing arg2 for hydrate function for element ${target}`);
+                return false;
+            }
+            //Determine the value we need to evaluate
+            let propResult = this.#determinePropValue(event, arg);
+            if(propResult.success === false)
+                return false;
+
+            let propNames = propResult.propName !== undefined
+                ? [propResult.propName]
+                : (typeof event.state === "object") ? Object.keys(event.state) : [undefined];
+            //retrieve the function in question
+            let func = new Function(`'use strict'; return ${arg.arg2}`)();
+            if(func == null || (typeof func !== "function"))
+                return false;
+
+            propNames.forEach(propName => {
+                let localEvent = this.#createLocalizedEvent(target, event, propName);
+                func(localEvent, arg.arg3);
+                updated = true;
+            });
+        });
+        return updated;
+    }
+    #updateHTMLHandler(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+        let updated = false;
+        attributes.handler.forEach(arg => {
+            //We don't have 
+            if(arg.arg2 === undefined)
+            {
+                console.error(`missing arg2 for hydrate handler for element ${target}`);
+                return false;
+            }
+            
+            //Determine the value we need to evaluate
+            let propResult = this.#determinePropValue(event, arg);
+            if(propResult.success === false)
+                return false;
+                
+            if(propResult.prop == null || (typeof propResult.prop !== "function"))
+            {
+                target[arg.arg2] = null;
+            }
+            else
+            {
+                const app = this;
+                target[arg.arg2] = (elementEvent) => {
+                    let model = app.model(attributes.model[0].arg1);
+                    let hydrateEvent = new HydrateModelEvent("handler", model, app.state(model), propResult.propName, target, app, app.name(model));
+                    propResult.prop(elementEvent, hydrateEvent, arg.arg3);
+                }
             }
             updated = true;
             
