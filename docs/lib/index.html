@@ -11,30 +11,57 @@
         </style>
     </head>
     <body>
-        <h1>Hydrate Demo</h1>
-        <div h-model="state" h-delete="delete" h-class="addStyle fontStyle" h-function="delete yellFunction how could you delete me!">
-            <h2 h-model="state" h-attribute="greeting name" h-property="greeting innerHTML"></h2>
-            <p>
-                <span h-model="state.data.person.contact" h-property="firstName innerHTML"></span>
-                <span h-model="state.data.person.contact" h-property="lastName innerHTML"></span>
-                <div h-model="state" h-toggle="secret hidden">You this is a hidden div!</div>
-            </p>
-            <p h-model="state" h-property="message innerHTML"></p>
-        </div>
-
-        <button h-model="state" h-handler="click onclick">
-            Click Me!
-        </button>
-
-        <input type="text" h-model="state" h-attribute="greeting value" h-input="greeting value" h-callback="greeting validateInput">
-        
-        <span hidden h-model="state" h-toggle="* hidden" h-condition="unbindOnly">Goodbye, model was unloaded</span>
-        <script h-model="state" h-script="* innerText">
-            (hydrateEvent) => {
-                return hydrateEvent.type === "unbind";
-            }
-        </script>
-
+        <main h-model="state" h-delete="* {{true}}" h-function="delete yellFunction {{'how could you delete me!'}}" h-event="unbind">
+            <script h-script="StyleScript">
+                (event) => {
+                    console.log("calculating style");
+                    return `color: ${event.prop}`;
+                }
+            </script>
+            <script h-script="CanChangeColorScript">
+                (event) => {
+                    return event.propName === "color" && event.prop !== "black";
+                }
+            </script>
+            
+            <h1 h-model="state" h-attribute="color style StyleScript" h-static h-condition="CanChangeColorScript">Hydrate Demo</h1>
+            
+            <div h-model="state" h-class="addStyle fontStyle">
+                <h2 h-model="state" h-attribute="greeting name" h-property="greeting innerHTML"></h2>
+                <p>
+                    <span h-model="state.data.person.contact" h-property="firstName innerHTML"></span>
+                    <span h-model="state.data.person.contact" h-property="lastName innerHTML"></span>
+                    <div h-model="state" h-toggle="secret hidden">You this is a hidden div!</div>
+                </p>
+                <p h-model="state" h-property="message innerHTML"></p>
+            </div>
+    
+            <button h-model="state" h-handler="click onclick">
+                Click Me!
+            </button>
+    
+            <input type="text" h-model="state" h-attribute="greeting value" h-input="greeting value" h-callback="greeting validateInput">
+            
+            <span hidden h-model="state" h-toggle="* hidden">Goodbye, model was unloaded</span>
+            
+            <span h-model="state" h-dispatch="relay custom {{'state.greeting'}}"></span>
+    
+            <!-- <script h-script="CreateStyleScript">
+                (event) => {
+                    return `color: ${event.prop}; width: 10px;`
+                }
+            </script>
+            <span h-model="state" h-attribute="color style CreateStyleScript"></span>
+            <span h-model="state" h-attribute="class class {{`${event.propName}-color`}}"></span>
+            <span h-model="state" h-component="form Template" h-initialize>
+            </span>
+    
+            <div h-router>
+                <section h-model="page" h-route="/products/:id url ./products/index.html"></section>
+                <section h-model="page" h-route=".* template NotFoundTemplate"></section>
+            </div> -->
+    
+        </main>
         
         <script>
             let hydrate = new HydrateApp();

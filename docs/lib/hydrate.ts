@@ -41,7 +41,7 @@ class HydrateHTMLAttributeOptions
     dispatch = "dispatch"; //dispatches an event
 
     //Templating and Components
-    expression = "expression";
+    script = "script";
     template = "template"; //template changes queries user of the templates then regenerate
     initialize = "initialize" //script called on creation of template to initialize component
     component = "component"; //="[PROP] [TEMPLATE] [property | model | array | dictionary | map]?
@@ -93,7 +93,7 @@ type HydrateModelEventType = 'bind' | "unbind" | 'set' | 'callback' | 'function'
 
 class HydrateModelEvent {
     hydrate: HydrateApp;
-    target: Element;
+    target: HTMLElement;
     type: HydrateModelEventType;
 
     model: any;
@@ -105,7 +105,7 @@ class HydrateModelEvent {
     propFullName: string;
     prop: any;
 
-    constructor(type:HydrateModelEventType, model: any, previousState: any, propName: string, target: Element, hydrate: HydrateApp, modelName?: string)
+    constructor(type:HydrateModelEventType, model: any, previousState: any, propName: string, target: HTMLElement, hydrate: HydrateApp, modelName?: string)
     {
         this.hydrate = hydrate;
         this.target = target;
@@ -154,10 +154,9 @@ class HydrateDomUpdateAttributes
     callback: HydrateDomAttributeArguments[];
     handler: HydrateDomAttributeArguments[];
     function: HydrateDomAttributeArguments[];
-    script: HydrateDomAttributeArguments[];
     dispatch: HydrateDomAttributeArguments[];
 
-    expression: HydrateDomAttributeArguments[];
+    script: HydrateDomAttributeArguments[];
     template: HydrateDomAttributeArguments[];
     initialize: HydrateDomAttributeArguments[];
     component: HydrateDomAttributeArguments[];
@@ -211,7 +210,7 @@ class HydrateApp
 
     //=============== Helpful methods ==============/
     /** Gets the root element the app is attached to */
-    get root(): Element {
+    get root(): HTMLElement {
         return document.querySelector(this.options.dom.root);
     }
     /** Gets the full directive name for the HTML attribute */
@@ -358,13 +357,15 @@ class HydrateApp
 
     //******** Advance features methods ********//
     /** Generates and dispatches events and sends it to HTML and listeners */
-    dispatch(type: HydrateModelEventType,  model: any, propName: string, previousState: any, target?: Element) {
+    dispatch(type: HydrateModelEventType,  model: any, propName: string, previousState: any, target?: HTMLElement) {
         if(target == null)
             target = this.root;
 
         const attribute = this.attribute(this.options.dom.attributes.model);
         //Get the DOM elements subscriped for model events that isn't part of a template model (requires model insertion)
-        let listeningElements = [...this.root.querySelectorAll(`[${attribute}]:not([${attribute}~=${this.options.models.insertionOperator}])`)];
+        const selector = `[${attribute}]:not([${attribute}~=${this.options.models.insertionOperator}])`;
+        let listeningElements:HTMLElement[] = target.matches(selector) ? [target] : [];
+        listeningElements = listeningElements.concat(<HTMLElement[]>[...target.querySelectorAll(selector)]);
         let eventListeners = [...this.#eventListeners.keys()];
         //Figure out all the models we're subscribed to
         const searchKeys =  listeningElements.map(x => x.attributes[attribute].value)
@@ -500,7 +501,7 @@ class HydrateApp
 
         return proxy;
     }
-    #generateEvents(type: HydrateModelEventType, target: Element, modelName: string, model: any, propName: string, searchKey: string, previousState: any) : HydrateModelEvent[] {
+    #generateEvents(type: HydrateModelEventType, target: HTMLElement, modelName: string, model: any, propName: string, searchKey: string, previousState: any) : HydrateModelEvent[] {
         const nameParts = modelName.split(this.options.models.nestedOperator);
         const keyParts = searchKey.split(this.options.models.nestedOperator);
 
@@ -624,7 +625,7 @@ class HydrateApp
         }
     }
     /** Updates the DOM using the provided model event */
-    #dom(event: HydrateModelEvent, target?: Element)
+    #dom(event: HydrateModelEvent, target?: HTMLElement)
     {
         if(target == null)
             target = this.root;
@@ -638,6 +639,31 @@ class HydrateApp
 
         //Determine how to update our DOM
         var attributes = this.#loadDomAttributes(target);
+
+        //If we are static, don't trigger anything
+        if(attributes.static !== undefined && attributes.static[0].arg1 === "true")
+            return;
+        if(attributes.event !== undefined)
+        {
+            let hasEvent = false;
+            attributes.event.forEach(arg => {
+                if(arg.arg1 === event.type)
+                    hasEvent = true;
+            });
+            if(!hasEvent)
+                return;
+        }
+        if(attributes.condition !== undefined)
+        {
+            let localEvent = this.#createLocalizedEvent(target, event, event.propName);
+            let arg = attributes.condition[0];
+            let expression = `${arg.arg1??""} ${arg.arg2??""} ${arg.arg3??""}`.trim();
+            console.log(expression);
+            let prop = this.#getScriptFunction(expression, localEvent, event.prop);
+            if(prop(localEvent) !== true)
+                return;
+        }
+
         let responded = false;
         if(attributes.attribute !== undefined)
             responded = this.#updateHTMLAttribute(target, event, attributes) || responded;
@@ -647,8 +673,6 @@ class HydrateApp
             responded = this.#updateHTMLToggleAttribute(target, event, attributes) || responded;
         if(attributes.class !== undefined)
             responded = this.#updateHTMLToggleClass(target, event, attributes) || responded;
-        if(attributes.delete !== undefined)
-            responded = this.#updateHTMLDeleteElement(target, event, attributes) || responded;
 
         if(attributes.callback !== undefined)
             responded = this.#updateHTMLCallback(target, event, attributes) || responded;
@@ -656,14 +680,23 @@ class HydrateApp
             responded = this.#updateHTMLHandler(target, event, attributes) || responded;
         if(attributes.function !== undefined)
             responded = this.#updateHTMLFunction(target, event, attributes) || responded;
+        if(attributes.dispatch !== undefined)
+            responded = this.#updateHTMLDispatch(target, event, attributes) || responded;
+
+        if(attributes.delete !== undefined)
+            responded = this.#updateHTMLDeleteElement(target, event, attributes) || responded;
+
+        //If we are static, don't trigger anything
+        if(responded === true && attributes.static !== undefined)
+            target.setAttribute(this.attribute(this.options.dom.attributes.static), "true");
     }
-    #loadDomAttributes(target : Element): HydrateDomUpdateAttributes {
+    #loadDomAttributes(target : HTMLElement): HydrateDomUpdateAttributes {
         const app = this;
-        let getArguments = function(target: Element, name: string): HydrateDomAttributeArguments[] {
+        let getArguments = function(target: HTMLElement, name: string): HydrateDomAttributeArguments[] {
             let attribute = target.attributes[app.attribute(name)];
             if(attribute === undefined)
                 return undefined;
-            return app.#splitAttributeValue(attribute.value);
+            return app.#splitAttributeValue(attribute.value.trim());
         }
         let attributes = new HydrateDomUpdateAttributes();
         attributes.model = getArguments(target, this.options.dom.attributes.model);
@@ -678,6 +711,13 @@ class HydrateApp
         attributes.callback = getArguments(target, this.options.dom.attributes.callback);
         attributes.handler = getArguments(target, this.options.dom.attributes.handler);
         attributes.function = getArguments(target, this.options.dom.attributes.function);
+        attributes.dispatch = getArguments(target, this.options.dom.attributes.dispatch);
+
+        attributes.script = getArguments(target, this.options.dom.attributes.script);
+
+        attributes.event = getArguments(target, this.options.dom.attributes.event);
+        attributes.static = getArguments(target, this.options.dom.attributes.static);
+        attributes.condition = getArguments(target, this.options.dom.attributes.condition);
         return attributes;
     }
     #splitAttributeValue(value: string): HydrateDomAttributeArguments[] {
@@ -730,10 +770,41 @@ class HydrateApp
         else 
             return new HydrateDeterminePropResult();
     }
-    #createLocalizedEvent(target: Element, event:HydrateModelEvent, propName: string) {
-        return new HydrateModelEvent(event.type, event.model, event.previousState, propName, target, event.hydrate);
+    #createLocalizedEvent(target: HTMLElement, event:HydrateModelEvent, propName: string) {
+        let type = event.type;
+        // if(event.propName === undefined && event.propName !== propName)
+        // {
+        //     switch(type)
+        //     {
+        //         case "bind":
+        //         case "set":
+        //             type = "bind";
+        //             break;
+        //     }
+        // }
+        return new HydrateModelEvent(type, event.model, event.previousState, propName, target, event.hydrate);
     }
-    #updateHTMLAttribute(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #getScriptFunction(expression:string, event:HydrateModelEvent, prop) {
+        if(expression === undefined)
+            return () => prop;
+        let match = expression.match(/^{{(.*)}}$/);
+        
+        if(match != null)
+        {
+            return new Function("event", `'use strict'; return ${match[1]}`);
+        }
+
+        let attrib = this.attribute(this.options.dom.attributes.script);
+        let element:HTMLElement = document.querySelector(`[${attrib}=${expression}]`);
+        
+        if(element === undefined)
+            return () => prop;;
+        let func = new Function(`'use strict'; return ${element.innerText.trim()}`)();
+        if(func == null || (typeof func !== "function"))
+            return () => prop;;
+        return func;
+    }
+    #updateHTMLAttribute(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
         let updated = false;
         attributes.attribute.forEach(arg => {
             //We don't have 
@@ -748,16 +819,18 @@ class HydrateApp
             if(propResult.success === false)
                 return false;
                 
-            if(target.attributes[arg.arg2]?.value !== propResult.prop)
+            let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
+            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop)(localEvent);
+            if(target.attributes[arg.arg2]?.value !== prop)
             {
-                target.setAttribute(arg.arg2, propResult.prop);
+                target.setAttribute(arg.arg2, prop);
             }
             updated = true;
             
         });
         return updated;
     }
-    #updateHTMLProperty(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLProperty(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
         let updated = false;
         attributes.property.forEach(arg => {
             //We don't have 
@@ -772,16 +845,18 @@ class HydrateApp
             if(propResult.success === false)
                 return false;
             
-            if(target[arg.arg2] !== propResult.prop)
+            let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
+            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop)(localEvent);
+            if(target[arg.arg2] !== prop)
             {
-                target[arg.arg2] = propResult.prop;
+                target[arg.arg2] = prop;
             }
             updated = true;
             
         });
         return updated;
     }
-    #updateHTMLToggleAttribute(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLToggleAttribute(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
         let updated = false;
         attributes.toggle.forEach(arg => {
             //We don't have 
@@ -795,16 +870,18 @@ class HydrateApp
             let propResult = this.#determinePropValue(event, arg);
             if(propResult.success === false)
                 return false;
-              
-            if(target.hasAttribute(arg.arg2) !== (propResult.prop === true))
+            
+            let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
+            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop)(localEvent);
+            if(target.hasAttribute(arg.arg2) !== (prop === true))
             {
-                target.toggleAttribute(arg.arg2, propResult.prop === true);
+                target.toggleAttribute(arg.arg2, prop === true);
                 updated = true;
             }
         });
         return updated;
     }
-    #updateHTMLToggleClass(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLToggleClass(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
         let updated = false;
         attributes.class.forEach(arg => {
             //We don't have 
@@ -818,24 +895,29 @@ class HydrateApp
             let propResult = this.#determinePropValue(event, arg);
             if(propResult.success === false)
                 return false;
-              
-            if(target.classList.contains(arg.arg2) !== (propResult.prop === true))
+            
+            let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
+            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop)(localEvent);
+            if(target.classList.contains(arg.arg2) !== (prop === true))
             {
-                target.classList.toggle(arg.arg2, propResult.prop === true);
+                target.classList.toggle(arg.arg2, prop === true);
                 updated = true;
             }
         });
         return updated;
     }
-    #updateHTMLDeleteElement(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLDeleteElement(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
         let updated = false;
         attributes.delete.forEach(arg => {
             //Determine the value we need to evaluate
             let propResult = this.#determinePropValue(event, arg);
             if(propResult.success === false)
                 return false;
-              
-            if(propResult.prop === true)
+            
+            let expression = `${arg.arg2??""} ${arg.arg3??""}`.trim();
+            let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
+            let prop = this.#getScriptFunction(expression, localEvent, propResult.prop)(localEvent);
+            if(prop === true)
             {
                 target.parentElement.removeChild(target);
                 updated = true;
@@ -843,7 +925,7 @@ class HydrateApp
         });
         return updated;
     }
-    #updateHTMLCallback(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLCallback(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
         let updated = false;
         attributes.callback.forEach(arg => {
             //We don't have 
@@ -865,13 +947,14 @@ class HydrateApp
                 return false;
             propNames.forEach(propName => {
                 let localEvent = this.#createLocalizedEvent(target, event, propName);
-                callback(localEvent, arg.arg3);
+                let prop = this.#getScriptFunction(arg.arg3, localEvent, undefined)(localEvent);
+                callback(localEvent, prop);
                 updated = true;
             });
         });
         return updated;
     }
-    #updateHTMLFunction(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLFunction(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
         let updated = false;
         attributes.function.forEach(arg => {
             //We don't have 
@@ -895,13 +978,14 @@ class HydrateApp
 
             propNames.forEach(propName => {
                 let localEvent = this.#createLocalizedEvent(target, event, propName);
-                func(localEvent, arg.arg3);
+                let prop = this.#getScriptFunction(arg.arg3, localEvent, undefined)(localEvent);
+                func(localEvent, prop);
                 updated = true;
             });
         });
         return updated;
     }
-    #updateHTMLHandler(target: Element, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLHandler(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
         let updated = false;
         attributes.handler.forEach(arg => {
             //We don't have 
@@ -925,8 +1009,9 @@ class HydrateApp
                 const app = this;
                 target[arg.arg2] = (elementEvent) => {
                     let model = app.model(attributes.model[0].arg1);
-                    let hydrateEvent = new HydrateModelEvent("handler", model, app.state(model), propResult.propName, target, app, app.name(model));
-                    propResult.prop(elementEvent, hydrateEvent, arg.arg3);
+                    let localEvent = new HydrateModelEvent("handler", model, app.state(model), propResult.propName, target, app, app.name(model));
+                    let prop = this.#getScriptFunction(arg.arg3, localEvent, undefined)(localEvent);
+                    propResult.prop(elementEvent, localEvent, prop);
                 }
             }
             updated = true;
@@ -934,4 +1019,54 @@ class HydrateApp
         });
         return updated;
     }
+    #updateHTMLDispatch(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+        let updated = false;
+        let app = this;
+        attributes.dispatch.forEach(arg => {
+            //We don't have 
+            if(arg.arg2 === undefined)
+            {
+                console.error(`missing arg2 for hydrate dispatch for element ${target}`);
+                return false;
+            }
+            //Determine the value we need to evaluate
+            let propResult = this.#determinePropValue(event, arg);
+            if(propResult.success === false)
+                return false;
+
+            let propNames = propResult.propName !== undefined
+                ? [propResult.propName]
+                : (typeof event.state === "object") ? Object.keys(event.state) : [undefined];
+            //retrieve the function in question
+            propNames.forEach(propName => {
+                let localEvent = this.#createLocalizedEvent(target, event, propName);
+                let name = this.#getScriptFunction(arg.arg3, localEvent, localEvent.modelName)(localEvent);
+                if(typeof name !== "string")
+                    return;
+                let lastIndex = name.lastIndexOf(this.options.models.nestedOperator);
+                let mName = lastIndex < 0 ? name : name.substring(0, lastIndex);
+                let pName = lastIndex < 0 ? undefined : name.substring(lastIndex + 1, name.length);
+
+                //We are using an ignore here because the passed string may not be a hard coded type
+                app.dispatch(<HydrateModelEventType>arg.arg2, app.model(mName), pName, app.state(mName), target);
+                updated = true;
+            });
+        });
+        return updated;
+    }
+    // event = "event";
+    // static = "static"; //Executes once
+    // condition = "condition";
+
+    // //Functions and execution
+    // callback = "callback"; //Calls a property function
+    // handler = "handler"; //Fires a callback when the "on" event of the element is fired
+    // function = "function";
+    // dispatch = "dispatch"; //dispatches an event
+
+    // //Templating and Components
+    // expression = "expression";
+    // template = "template"; //template changes queries user of the templates then regenerate
+    // initialize = "initialize" //script called on creation of template to initialize component
+    // component = "component"; //="[PROP] [TEMPLATE] [property | model | array | dictionary | map]?
 }
