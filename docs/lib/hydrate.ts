@@ -9,12 +9,14 @@ class HydrateDOMOptions
     root: string;
     attributePrefix: string;
     attributes: HydrateHTMLAttributeOptions;
+    modifiers: HydrateHTMLAttributeModifiers;
 
     constructor()
     {
         this.root = "body";
         this.attributePrefix = "h";
         this.attributes = new HydrateHTMLAttributeOptions();
+        this.modifiers = new HydrateHTMLAttributeModifiers();
     }
 }
 class HydrateHTMLAttributeOptions
@@ -46,6 +48,25 @@ class HydrateHTMLAttributeOptions
     initialize = "initialize" //script called on creation of template to initialize component
     component = "component"; //="[PROP] [TEMPLATE] [property | model | array | dictionary | map]?
 }
+
+class HydrateHTMLAttributeModifiers
+{
+    array: string;
+    dictionary: string;
+    model:string;
+    prop:string;
+    append: string;
+
+    constructor()
+    {
+        this.array = "array";
+        this.dictionary = "dictionary";
+        this.model = "model";
+        this.prop = "prop";
+        this.append = "append";
+    }
+}
+
 /** Options for Hydrate routing */
 class HydrateRouterOptions
 {
@@ -61,6 +82,7 @@ class HydrateModelOptions
 {
     stateProperty: string;
     nameProperty: string;
+    parentModelproperty: string;
     wildcardOperator: string;
     insertionOperator: string;
     nestedOperator: string;
@@ -68,6 +90,7 @@ class HydrateModelOptions
     constructor() {
         this.stateProperty = "__state";
         this.nameProperty = "__name";
+        this.parentModelproperty = "__parent";
         this.wildcardOperator = "*";
         this.insertionOperator = "_";
         this.nestedOperator = ".";
@@ -89,7 +112,7 @@ class HydrateAppOptions
 }
 //****************//
 //********Events********//
-type HydrateModelEventType = 'bind' | "unbind" | 'set' | 'callback' | 'function' | 'handler' | 'script';
+type HydrateModelEventType = 'bind' | "unbind" | 'set' | 'callback' | 'function' | 'handler' | 'initialize';
 
 class HydrateModelEvent {
     hydrate: HydrateApp;
@@ -121,7 +144,7 @@ class HydrateModelEvent {
         this.propFullName = (this.modelName != null && this.propName != null)
             ? this.modelName + hydrate.options.models.nestedOperator + this.propName
             : undefined;
-        this.prop = (typeof this.state === 'object')
+        this.prop = (this.state instanceof Object)
             ? this.state[this.propName]
             : undefined;
     }
@@ -260,6 +283,14 @@ class HydrateApp
         }
         return model;
     }
+    /** Retrieves the parent model of the model */
+    parent(search: string | object) : any {
+        let model = (typeof search === "object")
+            ? search : this.model(search);
+        if(model == null)
+            return model;
+        return this.model(model[this.options.models.parentModelproperty]);
+    }
     /** Retrieves the state associated with the search. Search can be a string (name of model) or the state of the model */
     state(search: string | object) : any {
         let model = (typeof search === "object")
@@ -289,7 +320,7 @@ class HydrateApp
         if(this.#models.get(name) != undefined)
             this.unbind(name);
 
-        let proxy = this.#makeProxy(state, name);
+        let proxy = this.#makeProxy(state, name, undefined);
         this.#models.set(name, proxy);
         this.dispatch("bind", proxy, undefined, undefined, this.root);
         return proxy;
@@ -363,9 +394,14 @@ class HydrateApp
 
         const attribute = this.attribute(this.options.dom.attributes.model);
         //Get the DOM elements subscriped for model events that isn't part of a template model (requires model insertion)
-        const selector = `[${attribute}]:not([${attribute}~=${this.options.models.insertionOperator}])`;
-        let listeningElements:HTMLElement[] = target.matches(selector) ? [target] : [];
-        listeningElements = listeningElements.concat(<HTMLElement[]>[...target.querySelectorAll(selector)]);
+        const selector = `[${attribute}]:not([${attribute}*=${this.options.models.insertionOperator}])`;
+        let listeningElements:HTMLElement[] = [];
+        if(target.isConnected)
+        {
+            if(target.matches(selector))
+                listeningElements.push(target);
+            listeningElements = listeningElements.concat(<HTMLElement[]>[...target.querySelectorAll(selector)]);
+        }
         let eventListeners = [...this.#eventListeners.keys()];
         //Figure out all the models we're subscribed to
         const searchKeys =  listeningElements.map(x => x.attributes[attribute].value)
@@ -430,23 +466,23 @@ class HydrateApp
     }
 
     //Internal
-    #makeProxy(data: any, name: string) {
+    #makeProxy(data: any, name: string, parent: string) {
         const app = this;
         let models = {};
         let proxy;
 
-        let bindOrGet = function(obj: any, prop: string | symbol) {
+        let bindOrGet = function(obj: any, prop: string | symbol, parentName: string) {
             if(obj[prop] instanceof Date || !(obj[prop] instanceof Object))
                 return null;
             let propName = (typeof prop === 'symbol') ? prop.toString() : prop;
-            let modelName = name + "." + propName;
+            let modelName = name + app.options.models.nestedOperator + propName;
 
             let model = models[prop];
             if(model !== undefined)
                 return model;
             else {
                 //Make proxy
-                models[prop] = app.#makeProxy(obj[prop], modelName);
+                models[prop] = app.#makeProxy(obj[prop], modelName, parentName);
                 return models[prop];
             }
         }
@@ -457,6 +493,8 @@ class HydrateApp
                     return obj;
                 if(prop === app.options.models.nameProperty)
                     return name;
+                if(prop === app.options.models.parentModelproperty)
+                    return parent;
                 if(prop === 'toJson')
                 {
                     if(typeof obj.toJson === 'function')
@@ -464,9 +502,9 @@ class HydrateApp
                     else return function() {return JSON.stringify(this)};
                 }
 
-                if (typeof obj[prop] === 'object' && obj[prop] != null)
+                if (obj[prop] instanceof Object && obj[prop] != null)
                 {
-                    let model = bindOrGet(obj, prop);
+                    let model = bindOrGet(obj, prop, name);
                     //let model = null;
                     return model ? model : obj[prop];
                 }
@@ -537,7 +575,7 @@ class HydrateApp
             if(i > 0 && keyParts[i] === this.options.models.wildcardOperator)
             {
                 let reference = type == 'unbind' ? localPreviousState : localModel;
-                if(typeof reference === 'object' && reference != null)
+                if(reference instanceof Object && reference != null)
                 {
                     return Object.keys(reference).flatMap(x => {
                         let parts = keyParts.map(x => x);
@@ -564,10 +602,10 @@ class HydrateApp
                     let x = keyParts[i];
                     if(i >= nameParts.length)
                     {
-                        localModel = typeof localModel === 'object' && localModel != null
+                        localModel = localModel instanceof Object && localModel != null
                             ? localModel[x]
                             : undefined;
-                        localPreviousState = typeof localPreviousState === 'object' && localPreviousState != null
+                        localPreviousState = localPreviousState instanceof Object && localPreviousState != null
                             ? localPreviousState[x]
                             : undefined;
                     }
@@ -658,7 +696,6 @@ class HydrateApp
             let localEvent = this.#createLocalizedEvent(target, event, event.propName);
             let arg = attributes.condition[0];
             let expression = `${arg.arg1??""} ${arg.arg2??""} ${arg.arg3??""}`.trim();
-            console.log(expression);
             let prop = this.#getScriptFunction(expression, localEvent, event.prop);
             if(prop(localEvent) !== true)
                 return;
@@ -682,6 +719,9 @@ class HydrateApp
             responded = this.#updateHTMLFunction(target, event, attributes) || responded;
         if(attributes.dispatch !== undefined)
             responded = this.#updateHTMLDispatch(target, event, attributes) || responded;
+
+        if(attributes.component !== undefined)
+            responded = this.#updateHTMLComponent(target, event, attributes) || responded;
 
         if(attributes.delete !== undefined)
             responded = this.#updateHTMLDeleteElement(target, event, attributes) || responded;
@@ -714,6 +754,9 @@ class HydrateApp
         attributes.dispatch = getArguments(target, this.options.dom.attributes.dispatch);
 
         attributes.script = getArguments(target, this.options.dom.attributes.script);
+        attributes.template = getArguments(target, this.options.dom.attributes.template);
+        attributes.component = getArguments(target, this.options.dom.attributes.component);
+        attributes.initialize = getArguments(target, this.options.dom.attributes.initialize);
 
         attributes.event = getArguments(target, this.options.dom.attributes.event);
         attributes.static = getArguments(target, this.options.dom.attributes.static);
@@ -746,7 +789,7 @@ class HydrateApp
         {
             if(arg.arg1 !== wildcard)
             {
-                if(typeof event.state === 'object')
+                if(event.state instanceof Object)
                 {
                     return new HydrateDeterminePropResult(event.state[arg.arg1], arg.arg1);
                 }
@@ -754,7 +797,7 @@ class HydrateApp
                     return new HydrateDeterminePropResult();
             }
             else {
-                if(typeof event.state === 'object')
+                if(event.state instanceof Object)
                 {
                     let keys = Object.keys(event.state);
                     let key = keys.length - 1;
@@ -801,8 +844,66 @@ class HydrateApp
             return () => prop;;
         let func = new Function(`'use strict'; return ${element.innerText.trim()}`)();
         if(func == null || (typeof func !== "function"))
-            return () => prop;;
+            return () => prop;
         return func;
+    }
+    #insertComponent(templateName:string, event: HydrateModelEvent, propNames:string[], append:boolean) {
+        const templateAttribute = this.attribute(this.options.dom.attributes.template);
+        let template:HTMLElement = document.querySelector(`[${templateAttribute}=${templateName}]`);
+        
+        if(template === undefined)
+            return undefined;
+        let target = event.target;
+        while (!append && target.firstChild) {
+            target.removeChild(target.firstChild);
+        }
+
+        const app = this;
+        const modelAttribute = this.attribute(this.options.dom.attributes.model);
+        const insertionOperator = this.options.models.insertionOperator;
+        const selector = `[${modelAttribute}*=${insertionOperator}]`;
+        const intializeAttribute = this.attribute(this.options.dom.attributes.initialize);
+        const processNode = function(element:HTMLElement, propName: string) {
+            //Set the model for the elements
+            if(!element.matches(selector))
+                return;
+            let localEvent= app.#createLocalizedEvent(element, event, propName);
+            let modelName = localEvent.propFullName ?? localEvent.modelName;
+            let value = element.attributes[modelAttribute].value.trim().replace(insertionOperator, modelName);
+            element.setAttribute(modelAttribute, value);
+
+            //Initialize the component if script provided
+            if(!element.hasAttribute(intializeAttribute))
+                return;
+            let func = new Function(`'use strict'; return ${element.innerText.trim()}`)();
+            if(func == null || (typeof func !== "function"))
+                return;
+            let intializeEvent = app.#createLocalizedEvent(element, event, propName);
+            intializeEvent.type = 'initialize';
+            func(intializeEvent);
+        }
+
+        //for(let i = 0; i < propNames.length; i++)
+        let children:Node[] = [];
+        propNames.forEach(propName => {
+            let nodes = (template instanceof HTMLTemplateElement)
+                ? template.content.childNodes
+                : template.childNodes;
+            nodes.forEach(x => {
+                let node = x.cloneNode(true);
+                children.push(node);
+
+                if(!(node instanceof HTMLElement))
+                    return;
+
+                //Inject model name and initialize component
+                processNode(node, propName);
+                node.querySelectorAll<HTMLElement>(selector).forEach(element => {
+                    processNode(element, propName);
+                });
+            }); 
+        });
+        children.forEach(x => target.appendChild(x));
     }
     #updateHTMLAttribute(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
         let updated = false;
@@ -941,8 +1042,8 @@ class HydrateApp
             
             let propNames = propResult.propName !== undefined
                 ? [propResult.propName]
-                : (typeof event.state === "object") ? Object.keys(event.state) : [undefined];
-            let callback = (typeof event.state === "object") ? event.state[arg.arg2] : undefined;
+                : (event.state instanceof Object) ? Object.keys(event.state) : [undefined];
+            let callback = (event.state instanceof Object) ? event.state[arg.arg2] : undefined;
             if(callback == null || (typeof callback !== "function"))
                 return false;
             propNames.forEach(propName => {
@@ -970,7 +1071,7 @@ class HydrateApp
 
             let propNames = propResult.propName !== undefined
                 ? [propResult.propName]
-                : (typeof event.state === "object") ? Object.keys(event.state) : [undefined];
+                : (event.state instanceof Object) ? Object.keys(event.state) : [undefined];
             //retrieve the function in question
             let func = new Function(`'use strict'; return ${arg.arg2}`)();
             if(func == null || (typeof func !== "function"))
@@ -1036,7 +1137,7 @@ class HydrateApp
 
             let propNames = propResult.propName !== undefined
                 ? [propResult.propName]
-                : (typeof event.state === "object") ? Object.keys(event.state) : [undefined];
+                : (event.state instanceof Object) ? Object.keys(event.state) : [undefined];
             //retrieve the function in question
             propNames.forEach(propName => {
                 let localEvent = this.#createLocalizedEvent(target, event, propName);
@@ -1054,19 +1155,70 @@ class HydrateApp
         });
         return updated;
     }
-    // event = "event";
-    // static = "static"; //Executes once
-    // condition = "condition";
+    #updateHTMLComponent(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+        let updated = false;
+        attributes.component.forEach(arg => {
+            //We don't have 
+            if(arg.arg2 === undefined)
+            {
+                console.error(`missing arg2 for hydrate component for element ${target}`);
+                return false;
+            }
+            
+            //Determine the value we need to evaluate
+            let propResult = this.#determinePropValue(event, arg);
+            if(propResult.success === false)
+                return false;
+            const templateName = arg.arg2;
+                
+            const modifiers = arg.arg3 === undefined ? [] : arg.arg3.split(" ");
+            const appendMode = modifiers.indexOf(this.options.dom.modifiers.append) >= 0;
 
-    // //Functions and execution
-    // callback = "callback"; //Calls a property function
-    // handler = "handler"; //Fires a callback when the "on" event of the element is fired
-    // function = "function";
-    // dispatch = "dispatch"; //dispatches an event
+            let propNames = event.propName !== undefined
+                ? [event.propName]
+                : (event.state instanceof Object) ? Object.keys(event.state) : [undefined];
+            
+            //retrieve the function in question
+            propNames.forEach(propName => {
+                let localEvent = this.#createLocalizedEvent(target, event, propName);
+                let componentType: string;
+                if(modifiers.indexOf(this.options.dom.modifiers.prop) >= 0)
+                    componentType = "prop";
+                else if(modifiers.indexOf(this.options.dom.modifiers.model) >= 0)
+                    componentType = "model";
+                else if(modifiers.indexOf(this.options.dom.modifiers.array) >= 0)
+                    componentType = "array";
+                else if(modifiers.indexOf(this.options.dom.modifiers.dictionary) >= 0)
+                    componentType = 'dictionary';
+                else if(localEvent.prop instanceof Array)
+                    componentType = 'array';
+                else if(localEvent.propName === undefined || (typeof localEvent.prop !== "object"))
+                    componentType = 'model';
+                else componentType = 'prop';
 
-    // //Templating and Components
-    // expression = "expression";
-    // template = "template"; //template changes queries user of the templates then regenerate
-    // initialize = "initialize" //script called on creation of template to initialize component
-    // component = "component"; //="[PROP] [TEMPLATE] [property | model | array | dictionary | map]?
+                if(componentType === 'model')
+                {
+                    this.#insertComponent(templateName, localEvent, [undefined], appendMode);
+                }
+                else
+                {
+                    let model = (localEvent.model instanceof Object)
+                        ? localEvent.model[localEvent.propName]
+                        : undefined;
+                    let previousSate = (localEvent.previousState instanceof Object)
+                        ? localEvent.previousState[localEvent.propName]
+                        : undefined;
+                    let componentEvent = new HydrateModelEvent(localEvent.type, model, previousSate, undefined, target, this);
+                    let propNames = componentType === 'prop' || !(localEvent.prop instanceof Object)
+                        ? [undefined]
+                        : Object.keys(localEvent.prop);
+                    this.#insertComponent(templateName, componentEvent, propNames, appendMode);
+                }
+                
+                updated = true;
+            });
+            
+        });
+        return updated;
+    }
 }

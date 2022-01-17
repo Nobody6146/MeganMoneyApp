@@ -42,25 +42,45 @@
     
             <input type="text" h-model="state" h-attribute="greeting value" h-input="greeting value" h-callback="greeting validateInput">
             
-            <span hidden h-model="state" h-toggle="* hidden">Goodbye, model was unloaded</span>
-            
             <span h-model="state" h-dispatch="relay custom {{'state.greeting'}}"></span>
     
-            <!-- <script h-script="CreateStyleScript">
+            <script h-script="CreateStyleScript">
                 (event) => {
                     return `color: ${event.prop}; width: 10px;`
                 }
             </script>
             <span h-model="state" h-attribute="color style CreateStyleScript"></span>
             <span h-model="state" h-attribute="class class {{`${event.propName}-color`}}"></span>
-            <span h-model="state" h-component="form Template" h-initialize>
-            </span>
     
             <div h-router>
                 <section h-model="page" h-route="/products/:id url ./products/index.html"></section>
                 <section h-model="page" h-route=".* template NotFoundTemplate"></section>
-            </div> -->
+            </div>
+
+            <template h-template="FormTemplate">
+                <script h-model="_" h-initialize>
+                    (event) => {
+                        console.log("form initialized!");
+                        console.log(event);
+                        //Initialize a value for the form
+                        if(event.state == null)
+                            event.model = {};
+                        if(event.state.value == null)
+                            event.model.value = 0; 
+                    }
+                </script>
+                <div h-model="_">
+                    <label>Please select a number</label>
+                    <input h-model="_" h-property="value value">
+                </div>
+            </template>
+
+            <div h-model="state" h-component="form FormTemplate">
+            </div>
     
+            <br/>
+            <div h-model="state" h-component="inventory FormTemplate append">
+            </div>
         </main>
         
         <script>
@@ -85,6 +105,7 @@
             model.validateInput = (hydrateEvent, arg) => {
                 console.log(`${hydrateEvent.propName} has been updated to: ${hydrateEvent.prop}`);
             }
+            model.inventory = [{name: "Apples", value: 1}, {name: "Oranges", value: 2}];
 
             function yellFunction(hydrateEvent, arg) {
                 console.log(arg);
