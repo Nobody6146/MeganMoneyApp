@@ -56,14 +56,16 @@ class HydrateHTMLAttributeModifiers
     model:string;
     prop:string;
     append: string;
+    enumerable: string;
 
     constructor()
     {
-        this.array = "array";
-        this.dictionary = "dictionary";
-        this.model = "model";
-        this.prop = "prop";
-        this.append = "append";
+        this.array = "array"; //generate a component for each element in the array
+        this.dictionary = "dictionary"; //generate a component for each value pair in the model
+        this.model = "model"; //generate component using the model as the model
+        this.prop = "prop"; //Generate a component using the prop as the model (default)
+        this.append = "append"; //Append component text instead of deleting everything
+        this.enumerable = "enumerable";//only allow enumerable properties to be turned into components
     }
 }
 
@@ -83,6 +85,7 @@ class HydrateModelOptions
     stateProperty: string;
     nameProperty: string;
     parentModelproperty: string;
+    baseModelProperty: string;
     wildcardOperator: string;
     insertionOperator: string;
     nestedOperator: string;
@@ -91,6 +94,7 @@ class HydrateModelOptions
         this.stateProperty = "__state";
         this.nameProperty = "__name";
         this.parentModelproperty = "__parent";
+        this.baseModelProperty = "__base";
         this.wildcardOperator = "*";
         this.insertionOperator = "_";
         this.nestedOperator = ".";
@@ -113,6 +117,7 @@ class HydrateAppOptions
 //****************//
 //********Events********//
 type HydrateModelEventType = 'bind' | "unbind" | 'set' | 'callback' | 'function' | 'handler' | 'initialize';
+type HydrateDispatchMode = 'domOnly' | 'subscriptionsOnly' | 'all';
 
 class HydrateModelEvent {
     hydrate: HydrateApp;
@@ -219,11 +224,31 @@ class HydrateApp
         this.#models = new Map();
         this.#eventListeners = new Map();
 
+        const app = this;
+        const mutationOptions:MutationObserverInit = {
+            subtree: true,
+            childList: true,
+            attributes: true,
+            attributeFilter: [
+                this.attribute(this.options.dom.attributes.model),
+                this.attribute(this.options.dom.attributes.attribute),
+                this.attribute(this.options.dom.attributes.property),
+                this.attribute(this.options.dom.attributes.toggle),
+                this.attribute(this.options.dom.attributes.class),
+                this.attribute(this.options.dom.attributes.delete),
+                this.attribute(this.options.dom.attributes.event),
+                this.attribute(this.options.dom.attributes.static),
+                this.attribute(this.options.dom.attributes.condition),
+                this.attribute(this.options.dom.attributes.callback),
+                this.attribute(this.options.dom.attributes.handler),
+                this.attribute(this.options.dom.attributes.function),
+                this.attribute(this.options.dom.attributes.dispatch),
+                this.attribute(this.options.dom.attributes.component),
+            ],
+        }
         //Start the dom
         this.#observer = new MutationObserver(this.#mutationCallback.bind(this));
-        this.#observer.observe(this.root, 
-            {childList: true, attributes: true, attributeFilter: Object.keys(this.options.dom.attributes).map(x => this.attribute(x)), subtree: true}
-        );
+        this.#observer.observe(this.root, mutationOptions);
         this.root.addEventListener("input", this.#inputListener.bind(this));
 
         //Start the router
@@ -252,7 +277,7 @@ class HydrateApp
     }
     /** Retrieves the model resulting from the search. Search can be a string (name of model) or the state of the model */
     model(search : string | object): any {
-        if(search === undefined)
+        if(search == null)
             return undefined;
         let model : any;
         let name : string;
@@ -291,6 +316,13 @@ class HydrateApp
             return model;
         return this.model(model[this.options.models.parentModelproperty]);
     }
+    base(search: string | object) : any {
+        let model = (typeof search === "object")
+            ? search : this.model(search);
+        if(model == null)
+            return model;
+        return this.model(model[this.options.models.baseModelProperty]);
+    }
     /** Retrieves the state associated with the search. Search can be a string (name of model) or the state of the model */
     state(search: string | object) : any {
         let model = (typeof search === "object")
@@ -301,9 +333,9 @@ class HydrateApp
     }
     /** Gets the model name of the search. Search can be a string (name of model) or the state of the model */
     name(search: string | object) : string {
-        if(name === undefined)
+        if(search == null)
             return undefined;
-        let model = (typeof search === "object")
+        let model = (typeof search !== "string")
             ? search : this.model(search)
         if(model == null)
             return undefined;
@@ -322,7 +354,7 @@ class HydrateApp
 
         let proxy = this.#makeProxy(state, name, undefined);
         this.#models.set(name, proxy);
-        this.dispatch("bind", proxy, undefined, undefined, this.root);
+        this.dispatch("bind", proxy, undefined, undefined, this.root, "all");
         return proxy;
     }
     /** Unbinds the model from the framework related to the search. Search can be a string (name of model) or the state of the model */
@@ -344,12 +376,12 @@ class HydrateApp
         const rootModelName = nameParts[0];
         this.#models.delete(rootModelName);
 
-        this.dispatch("unbind", model, undefined, this.state(model), this.root);
+        this.dispatch("unbind", model, undefined, this.state(model), this.root, "all");
     }
     
     //******** Basic model methods ********//
-    /** Adds an even listener for the following events */
-    listen(search : string | object, handler: (event: HydrateModelEvent) => any) : (event: HydrateModelEvent) => any
+    /** Subscribes to an even listener for the following events */
+    subscribe(search : string | object, handler: (event: HydrateModelEvent) => any) : (event: HydrateModelEvent) => any
     {
         const name = (typeof search === "string")
             ? search
@@ -369,7 +401,7 @@ class HydrateApp
         return handler;
     }
     /** Removes an event listener */
-    unlisten(search: string | object, handler: (event: HydrateModelEvent) => any) : (event: HydrateModelEvent) => any
+    unsubscribe(search: string | object, handler: (event: HydrateModelEvent) => any) : (event: HydrateModelEvent) => any
     {
         const name = (typeof search === "string")
             ? search
@@ -388,10 +420,7 @@ class HydrateApp
 
     //******** Advance features methods ********//
     /** Generates and dispatches events and sends it to HTML and listeners */
-    dispatch(type: HydrateModelEventType,  model: any, propName: string, previousState: any, target?: HTMLElement) {
-        if(target == null)
-            target = this.root;
-
+    dispatch(type: HydrateModelEventType,  model: any, propName: string, previousState: any, target: HTMLElement, mode:HydrateDispatchMode ) {
         const attribute = this.attribute(this.options.dom.attributes.model);
         //Get the DOM elements subscriped for model events that isn't part of a template model (requires model insertion)
         const selector = `[${attribute}]:not([${attribute}*=${this.options.models.insertionOperator}])`;
@@ -404,40 +433,48 @@ class HydrateApp
         }
         let eventListeners = [...this.#eventListeners.keys()];
         //Figure out all the models we're subscribed to
-        const searchKeys =  listeningElements.map(x => x.attributes[attribute].value)
-            .concat(eventListeners);
+        let searchKeys:string[] = [];
+        if(mode === 'all' || mode === 'domOnly') {
+            searchKeys = listeningElements.map(x => x.attributes[attribute].value);
+        }
+        if(mode === 'all' || mode === 'subscriptionsOnly') {
+            searchKeys = searchKeys.concat(eventListeners);
+        }
         //Determine all the base handlers to notify (using a distinct list)
         let eventMappings = new Map<string, HydrateModelEvent[]>();
         [...new Set(searchKeys)].forEach(key => {
             eventMappings.set(key, 
                 this.#generateEvents(type, target, this.name(model), model, propName, key, previousState));
         });
-
         //Fire all the event handlers
-        eventListeners.forEach(key =>
-        {
-            let events = eventMappings.get(key);
-            if(events == null)
-                return;
-            this.#eventListeners.get(key).forEach(handler => {
-                events.forEach(event => {
-                    handler(event);
-                });
-            }); 
-        })
+        if(mode === 'all' || mode === 'subscriptionsOnly') {
+            eventListeners.forEach(key =>
+            {
+                let events = eventMappings.get(key);
+                if(events == null)
+                    return;
+                this.#eventListeners.get(key).forEach(handler => {
+                    events.forEach(event => {
+                        handler(event);
+                    });
+                }); 
+            })
+        }
 
         //Trigger all the DOM updates
-        listeningElements.forEach(element => {
-            let events = eventMappings.get(element.attributes[attribute].value);
-            if(events == null)
-                return;
-            events.forEach(event => {
-                this.#dom(event, element);
-            });
-        })
+        if(mode === 'all' || mode === 'domOnly') {
+            
+            listeningElements.forEach(element => {
+                let events = eventMappings.get(element.attributes[attribute].value);
+                if(events == null)
+                    return;
+                events.forEach(event => {
+                    this.#dom(event, element);
+                });
+            })
+        }
     }
     //====================
-
     /** Search can be a string (name of model) or the state of the model */
     #getRootModel(search): any {
         let model : any;
@@ -468,6 +505,7 @@ class HydrateApp
     //Internal
     #makeProxy(data: any, name: string, parent: string) {
         const app = this;
+        const baseName = parent == null ? name : parent.split(this.options.models.nestedOperator)[0];
         let models = {};
         let proxy;
 
@@ -495,6 +533,8 @@ class HydrateApp
                     return name;
                 if(prop === app.options.models.parentModelproperty)
                     return parent;
+                if(prop === app.options.models.baseModelProperty)
+                    return baseName;
                 if(prop === 'toJson')
                 {
                     if(typeof obj.toJson === 'function')
@@ -520,8 +560,10 @@ class HydrateApp
                 if(app.model(name) !== proxy) {
                     return true;
                 }
+                // if(!obj.propertyIsEnumerable(prop))
+                //     return;
                 let propName = (typeof prop === 'symbol') ? prop.toString() : prop;
-                app.dispatch("set", proxy, propName, previousValue, app.root);
+                app.dispatch("set", proxy, propName, previousValue, app.root, "all");
                 return true;
             },
             deleteProperty: function(obj, prop) {
@@ -531,7 +573,7 @@ class HydrateApp
                     if(models[prop] != undefined)
                         delete models[prop];
                     let propName = (typeof prop === 'symbol') ? prop.toString() : prop;
-                    app.dispatch("unbind", proxy, propName, property, app.root);
+                    app.dispatch("unbind", proxy, propName, property, app.root, "all");
                 }
                 return true;
             }
@@ -621,7 +663,9 @@ class HydrateApp
             //We reached the end of the model name where the event happens, if this doesn't match then ignore
             if(nameParts.length < keyParts.length && i == nameParts.length - 1)
             {
-                if(keyParts[i + 1] !== propName && keyParts[i + 1] !== this.options.models.wildcardOperator)
+                if(keyParts[i + 1] !== propName
+                    && propName !== undefined
+                    && keyParts[i + 1] !== this.options.models.wildcardOperator)
                 {
                     //We've reached the end and the prop name doesn't match our path, so ignore
                     return [];
@@ -631,7 +675,9 @@ class HydrateApp
 
         //We didn't find any relevant data for the model based on the search key
         if(localModel === undefined && previousState === undefined)
+        {
             return [];
+        }
 
         if(keyParts.length === nameParts.length)
         {
@@ -642,13 +688,52 @@ class HydrateApp
             return [new HydrateModelEvent(type, localModel, localPreviousState, undefined, target, this, name)]
         };
     }
-    #mutationCallback(mutations, observer) {
-        let bindUpdates = [];
-        mutations.forEach( m => {
-            // if(m.type === 'childList')
-            //     m.addedNodes.forEach(n => this.bindNodeRecursive(n));
-            // if(m.type === 'attributes') 
-            //     this.bindNodeRecursive(m.target);
+    #mutationCallback(mutations:MutationRecord[], observer:MutationObserver) {
+        let updatedElements:HTMLElement[] = [];
+        const modelAttribute = this.attribute(this.options.dom.attributes.model);
+        const selector = `[${modelAttribute}]:not([${modelAttribute}*=${this.options.models.insertionOperator}])`;
+        
+        mutations.forEach(mutation => {
+            if(!(mutation.target instanceof HTMLElement))
+                return;
+            const target = mutation.target;
+            switch(mutation.type)
+            {
+                case "attributes":
+                {
+                    if(mutation.target.matches(selector))
+                        updatedElements.push(mutation.target);
+                }
+                case "childList":
+                {
+                    mutation.addedNodes.forEach(node => {
+                        if(!(node instanceof HTMLElement))
+                            return;
+                        if(node.matches(selector))
+                            updatedElements.push(node);
+                        node.querySelectorAll<HTMLElement>(selector).forEach(x => {
+                            updatedElements.push(x);
+                        });
+                    })
+                }
+            }
+        });
+
+        //Update each element
+        [...new Set(updatedElements)].forEach(element => {
+            //Look up the lowest level model to bind, let the dispatch method handle generating the specifc event
+            let modelName:string = element.attributes[modelAttribute].value;
+            let rootModelName = modelName.split(this.options.models.nestedOperator)[0];
+            //If generic, bind all models to it
+            let models = rootModelName !== this.options.models.wildcardOperator
+                ? [this.model(rootModelName)] : this.models
+            
+            models.forEach(model => {
+                if(model == null)
+                    return;
+                let previousState = this.state(model);
+                this.dispatch("bind", model, undefined, previousState, element, "domOnly");
+            })
         });
     }
     #inputListener(event) {
@@ -807,7 +892,7 @@ class HydrateApp
                     return new HydrateDeterminePropResult(event.state, undefined);
             }
         }
-        else if(arg.arg1 === event.propName)
+        else if(arg.arg1 === event.propName || arg.arg1 === wildcard)
             return new HydrateDeterminePropResult(event.prop, event.propName);
         //This event doesn't match, so ignore
         else 
@@ -1149,7 +1234,7 @@ class HydrateApp
                 let pName = lastIndex < 0 ? undefined : name.substring(lastIndex + 1, name.length);
 
                 //We are using an ignore here because the passed string may not be a hard coded type
-                app.dispatch(<HydrateModelEventType>arg.arg2, app.model(mName), pName, app.state(mName), target);
+                app.dispatch(<HydrateModelEventType>arg.arg2, app.model(mName), pName, app.state(mName), target, "all");
                 updated = true;
             });
         });
@@ -1173,6 +1258,11 @@ class HydrateApp
                 
             const modifiers = arg.arg3 === undefined ? [] : arg.arg3.split(" ");
             const appendMode = modifiers.indexOf(this.options.dom.modifiers.append) >= 0;
+            const enumerableMode = modifiers.indexOf(this.options.dom.modifiers.enumerable) >= 0;
+
+            if(event.propName !== undefined && (event.state instanceof Object)
+                && enumerableMode && !event.state.propertyIsEnumerable(event.propName))
+                return;
 
             let propNames = event.propName !== undefined
                 ? [event.propName]
@@ -1192,7 +1282,7 @@ class HydrateApp
                     componentType = 'dictionary';
                 else if(localEvent.prop instanceof Array)
                     componentType = 'array';
-                else if(localEvent.propName === undefined || (typeof localEvent.prop !== "object"))
+                else if(localEvent.propName === undefined && (typeof localEvent.prop !== "object"))
                     componentType = 'model';
                 else componentType = 'prop';
 
@@ -1208,10 +1298,10 @@ class HydrateApp
                     let previousSate = (localEvent.previousState instanceof Object)
                         ? localEvent.previousState[localEvent.propName]
                         : undefined;
-                    let componentEvent = new HydrateModelEvent(localEvent.type, model, previousSate, undefined, target, this);
-                    let propNames = componentType === 'prop' || !(localEvent.prop instanceof Object)
+                    let componentEvent = new HydrateModelEvent(localEvent.type, model, previousSate, undefined, target, this, this.name(model));
+                    let propNames = componentType === 'prop' || !(componentEvent.state instanceof Object)
                         ? [undefined]
-                        : Object.keys(localEvent.prop);
+                        : Object.keys(componentEvent.state);
                     this.#insertComponent(templateName, componentEvent, propNames, appendMode);
                 }
                 

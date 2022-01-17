@@ -11,7 +11,7 @@
         </style>
     </head>
     <body>
-        <main h-model="state" h-delete="* {{true}}" h-function="delete yellFunction {{'how could you delete me!'}}" h-event="unbind">
+        <main h-model="state" h-delete="* {{event.state == null}}" h-function="delete yellFunction {{'how could you delete me!'}}" h-event="unbind">
             <script h-script="StyleScript">
                 (event) => {
                     console.log("calculating style");
@@ -62,11 +62,7 @@
                     (event) => {
                         console.log("form initialized!");
                         console.log(event);
-                        //Initialize a value for the form
-                        if(event.state == null)
-                            event.model = {};
-                        if(event.state.value == null)
-                            event.model.value = 0; 
+                        
                     }
                 </script>
                 <div h-model="_">
@@ -79,14 +75,23 @@
             </div>
     
             <br/>
-            <div h-model="state" h-component="inventory FormTemplate append">
+            <label>Whole inventory</label>
+            <div h-model="state" h-component="inventory FormTemplate">
+            </div>
+
+            <br/>
+            <label>Per item</label>
+            <label>total: 
+                <span h-model="state.inventory" h-property="length innerHTML"> </span>
+            </label>
+            <div h-model="state.inventory" h-component="* FormTemplate append enumerable">
             </div>
         </main>
         
         <script>
             let hydrate = new HydrateApp();
-            hydrate.listen("state", (event) => console.log(event));
-            hydrate.listen("state.data.person.contact", (event) => {console.log("wow!"); console.log(event)});
+            hydrate.subscribe("state", (event) => console.log(event));
+            hydrate.subscribe("state.data.person.contact", (event) => {console.log("wow!"); console.log(event)});
             let state = {greeting: "Hello world"};
             let model = hydrate.bind("state", state);
             model.data = {
