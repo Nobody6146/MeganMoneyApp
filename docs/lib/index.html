@@ -27,7 +27,7 @@
             <div>
                 <template h-template="HomePage">
                     <h1 h-model="_">Welcome home</h1>
-                    <script h-model="_" h-initialize>
+                    <script h-initialize>
                         (event, routeRequest) => {
                             console.log(routeRequest);
                         }
@@ -143,7 +143,10 @@
 
             hydrate.route("", async (req, res) => { 
                 console.log(`routing to url ${req.url}`);
-                return await res.continue()
+                return new Promise(async (resolve, reject) => {
+                    //Simulate the delay of a long running task
+                    setTimeout(async () => await res.continue(), 500);
+                });
             });
             hydrate.navigate();
         </script>

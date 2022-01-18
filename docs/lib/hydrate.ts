@@ -432,6 +432,11 @@ class HydrateApp
 
         this.dispatch("unbind", model, undefined, this.state(model), this.root, "all");
     }
+    //Refreshes all of the data on the page
+    refresh(mode?: HydrateDispatchMode) {
+        this.dispatch("bind", undefined, undefined, undefined, this.root, mode ?? "all", "*");
+        this.dispatch("route", undefined, undefined, undefined, this.root, mode ?? "all", "*");
+    }
     
     //******** Basic model methods ********//
     /** Subscribes to an even listener for the following events */
@@ -492,6 +497,45 @@ class HydrateApp
         if(index === -1)
             return;
         listeners.splice(index, 1);
+    }
+
+    //======== Routing =============//
+    //Queries the routes
+    routes(path: string, handler: (req:HydrateRouteRequest, res:HydrateRouteResponse) => Promise<any>) :HydrateRoute[] {
+        return this.#routes.filter(route => 
+            (path == null || route.path === path) && (handler == null || handler === route.callback)
+        );
+    }
+    route(path:string, callback: (req:HydrateRouteRequest, res:HydrateRouteResponse) => any | Promise<any>): HydrateRoute {
+        let route:HydrateRoute = {
+            path: path,
+            callback: callback
+        };
+        this.#routes.push(route);
+        return route;
+    }
+    //Navigates to the url
+    navigate(url:string, state: any) {
+        if(url == null)
+            url = window.location.pathname + window.location.search + window.location.hash;
+        history.pushState(state, "", url);
+        this.#navigateToRoute(state);
+    }
+    //Reloads the current page
+    reload() {
+        history.go();
+    }
+    //Goes backwards in browser history
+    back() {
+        history.back();
+    }
+    //Goes forward in browser history
+    forward() {
+        history.forward();
+    }
+    //Updates the history of the current entry
+    history(state, url?:string) {
+        history.replaceState(state, "", url === undefined ? this.#routerContext.url : url)
     }
 
     //******** Advance features methods ********//
@@ -1098,22 +1142,24 @@ class HydrateApp
         const intializeAttribute = this.attribute(this.options.dom.attributes.initialize);
         const processNode = function(element:HTMLElement, propName: string) {
             //Set the model for the elements
-            if(!element.matches(selector))
-                return;
-            let localEvent= app.#createLocalizedEvent(element, event, propName);
-            let modelName = localEvent.propFullName ?? localEvent.modelName;
-            let value = element.attributes[modelAttribute].value.trim().replace(insertionOperator, modelName);
-            element.setAttribute(modelAttribute, value);
-
+            if(element.matches(selector))
+            {
+                let localEvent= app.#createLocalizedEvent(element, event, propName);
+                let modelName = localEvent.propFullName ?? localEvent.modelName;
+                let value = element.attributes[modelAttribute].value.trim().replace(insertionOperator, modelName);
+                element.setAttribute(modelAttribute, value);
+            }
+            
             //Initialize the component if script provided
-            if(!element.hasAttribute(intializeAttribute))
-                return;
-            let func = new Function(`'use strict'; return ${element.innerText.trim()}`)();
-            if(func == null || (typeof func !== "function"))
-                return;
-            let intializeEvent = app.#createLocalizedEvent(element, event, propName);
-            intializeEvent.type = 'initialize';
-            func(intializeEvent, routeRequest);
+            if(element.hasAttribute(intializeAttribute))
+            {
+                let func = new Function(`'use strict'; return ${element.innerText.trim()}`)();
+                if(func == null || (typeof func !== "function"))
+                    return;
+                let intializeEvent = app.#createLocalizedEvent(element, event, propName);
+                intializeEvent.type = 'initialize';
+                func(intializeEvent, routeRequest);
+            }
         }
 
         //for(let i = 0; i < propNames.length; i++)
@@ -1599,43 +1645,5 @@ class HydrateApp
     }
     #routeDom(routeContext: HydrateRouterContext) {
         this.dispatch("route", undefined, undefined, undefined, this.root, "domOnly", "*");
-    }
-
-    //Queries the routes
-    routes(path: string, handler: (req:HydrateRouteRequest, res:HydrateRouteResponse) => Promise<any>) :HydrateRoute[] {
-        return this.#routes.filter(route => 
-            (path == null || route.path === path) && (handler == null || handler === route.callback)
-        );
-    }
-    route(path:string, callback: (req:HydrateRouteRequest, res:HydrateRouteResponse) => Promise<any>): HydrateRoute {
-        let route:HydrateRoute = {
-            path: path,
-            callback: callback
-        };
-        this.#routes.push(route);
-        return route;
-    }
-    //Navigates to the url
-    navigate(url:string, state: any) {
-        if(url == null)
-            url = window.location.pathname + window.location.search + window.location.hash;
-        history.pushState(state, "", url);
-        this.#navigateToRoute(state);
-    }
-    //Reloads the current page
-    reload() {
-        history.go();
-    }
-    //Goes backwards in browser history
-    back() {
-        history.back();
-    }
-    //Goes forward in browser history
-    forward() {
-        history.forward();
-    }
-    //Updates the history of the current entry
-    history(state, url?:string) {
-        history.replaceState(state, "", url === undefined ? this.#routerContext.url : url)
     }
 }
