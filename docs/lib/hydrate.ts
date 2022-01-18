@@ -47,6 +47,10 @@ class HydrateHTMLAttributeOptions
     template = "template"; //template changes queries user of the templates then regenerate
     initialize = "initialize" //script called on creation of template to initialize component
     component = "component"; //="[PROP] [TEMPLATE] [property | model | array | dictionary | map]?
+
+    //Routing
+    route = "route"; //Make element only respond to route request
+    page = "page"; //Tells component how page should be inserted
 }
 
 class HydrateHTMLAttributeModifiers
@@ -116,7 +120,7 @@ class HydrateAppOptions
 }
 //****************//
 //********Events********//
-type HydrateModelEventType = 'bind' | "unbind" | 'set' | 'callback' | 'function' | 'handler' | 'initialize';
+type HydrateModelEventType = 'bind' | "unbind" | 'set' | 'callback' | 'function' | 'handler' | 'initialize' | 'route';
 type HydrateDispatchMode = 'domOnly' | 'subscriptionsOnly' | 'all';
 
 class HydrateModelEvent {
@@ -189,6 +193,9 @@ class HydrateDomUpdateAttributes
     initialize: HydrateDomAttributeArguments[];
     component: HydrateDomAttributeArguments[];
 
+    route: HydrateDomAttributeArguments[];
+    page: HydrateDomAttributeArguments[];
+
     event: HydrateDomAttributeArguments[];
     static: HydrateDomAttributeArguments[];
     condition: HydrateDomAttributeArguments[];
@@ -208,6 +215,47 @@ class HydrateDeterminePropResult
     }
 }
 
+//*************//
+class HydrateRouteRequest {
+    route: string;
+    url: string;
+    pathname: string;
+    search: string;
+    query: object;
+    hash: string;
+    params: object;
+    state;
+}
+
+class HydrateRouteResponse {
+    hydrate: HydrateApp;
+    continue: () => Promise<any>; //Continues down routing middleware pipeliine and processes next piece of middleware (will auto call resolve if no more middleware)
+    resolve: () => Promise<any>; //Completes the routing middleware pipeline, and continues with the rest of routing (dom routing)
+}
+
+class HydrateRoute {
+    path:string;
+    callback: (req:HydrateRouteRequest, res:HydrateRouteResponse) => Promise<any>;
+}
+
+class HydrateRouterContext {
+    path: string;
+    url: string;
+    pathname: string;
+    search: string;
+    hash: string;
+    state;
+
+    constructor() {
+        this.path = null;
+        this.url = null;
+        this.pathname = null;
+        this.search = null;
+        this.hash = null;
+        this.state = null;
+    }
+}
+
 //****************//
 
 class HydrateApp
@@ -215,7 +263,8 @@ class HydrateApp
     #models: Map<string, any>;
     #eventListeners : Map<string, ((event: HydrateModelEvent) => any)[]>;
     #observer : MutationObserver;
-
+    #routes: HydrateRoute[];
+    #routerContext: HydrateRouterContext;
     options: HydrateAppOptions;
 
     constructor(options?: HydrateAppOptions)
@@ -244,16 +293,21 @@ class HydrateApp
                 this.attribute(this.options.dom.attributes.function),
                 this.attribute(this.options.dom.attributes.dispatch),
                 this.attribute(this.options.dom.attributes.component),
+                this.attribute(this.options.dom.attributes.route),
+                this.attribute(this.options.dom.attributes.page),
             ],
         }
+
         //Start the dom
         this.#observer = new MutationObserver(this.#mutationCallback.bind(this));
         this.#observer.observe(this.root, mutationOptions);
         this.root.addEventListener("input", this.#inputListener.bind(this));
 
         //Start the router
+        this.#routes = [];
+        this.#routerContext = new HydrateRouterContext();
         // this.root.addEventListener("click", this.routeListener.bind(this));
-        // window.addEventListener("popstate", this.historyListener.bind(this));
+        window.addEventListener("popstate", this.#historyListener.bind(this));
     }
 
     //=============== Helpful methods ==============/
@@ -381,6 +435,28 @@ class HydrateApp
     
     //******** Basic model methods ********//
     /** Subscribes to an even listener for the following events */
+    subscriptions(search: string | object, handler: (event: HydrateModelEvent) => any) :{modelName:string, handler: (event: HydrateModelEvent) => any}[] {
+        const name = (typeof search === "string")
+            ? search
+            : this.name(search);
+        if(search != null && name == null)
+            return null;
+        
+        let results:{modelName:string, handler: (event: HydrateModelEvent) => any}[] = [];
+        [...this.#eventListeners.keys()].forEach(key => {
+            if(search != null && search !== key)
+                return;
+            let listeners = this.#eventListeners.get(key);
+            if(listeners == null)
+                return;
+            listeners.forEach(listener => {
+                if(handler != null && handler !== listener)
+                    return;
+                results.push({modelName: key, handler: listener});
+            })
+        });
+        return results;
+    }
     subscribe(search : string | object, handler: (event: HydrateModelEvent) => any) : (event: HydrateModelEvent) => any
     {
         const name = (typeof search === "string")
@@ -420,7 +496,9 @@ class HydrateApp
 
     //******** Advance features methods ********//
     /** Generates and dispatches events and sends it to HTML and listeners */
-    dispatch(type: HydrateModelEventType,  model: any, propName: string, previousState: any, target: HTMLElement, mode:HydrateDispatchMode ) {
+    async dispatch(type: HydrateModelEventType,  model: any, propName: string, previousState: any, target: HTMLElement, mode:HydrateDispatchMode, modelName?:string): Promise<void> {
+        const routerContext = this.#routerContext;
+        
         const attribute = this.attribute(this.options.dom.attributes.model);
         //Get the DOM elements subscriped for model events that isn't part of a template model (requires model insertion)
         const selector = `[${attribute}]:not([${attribute}*=${this.options.models.insertionOperator}])`;
@@ -444,7 +522,7 @@ class HydrateApp
         let eventMappings = new Map<string, HydrateModelEvent[]>();
         [...new Set(searchKeys)].forEach(key => {
             eventMappings.set(key, 
-                this.#generateEvents(type, target, this.name(model), model, propName, key, previousState));
+                this.#generateEvents(type, target, this.name(model) ?? modelName, model, propName, key, previousState));
         });
         //Fire all the event handlers
         if(mode === 'all' || mode === 'subscriptionsOnly') {
@@ -464,12 +542,12 @@ class HydrateApp
         //Trigger all the DOM updates
         if(mode === 'all' || mode === 'domOnly') {
             
-            listeningElements.forEach(element => {
+            listeningElements.forEach(async element => {
                 let events = eventMappings.get(element.attributes[attribute].value);
                 if(events == null)
                     return;
-                events.forEach(event => {
-                    this.#dom(event, element);
+                events.forEach(async event => {
+                    await this.#dom(event, element, routerContext);
                 });
             })
         }
@@ -584,7 +662,7 @@ class HydrateApp
     #generateEvents(type: HydrateModelEventType, target: HTMLElement, modelName: string, model: any, propName: string, searchKey: string, previousState: any) : HydrateModelEvent[] {
         const nameParts = modelName.split(this.options.models.nestedOperator);
         const keyParts = searchKey.split(this.options.models.nestedOperator);
-
+        
         //match on any combination of nested models with wildcards such as: "people.profile.*.info.*""
         if(nameParts.length > keyParts.length)
         {
@@ -631,6 +709,24 @@ class HydrateApp
                     return [];
                 }
             }
+            else if(i == 0 && nameParts[i] === this.options.models.wildcardOperator)
+            {
+                if(keyParts[i] !== this.options.models.wildcardOperator)
+                {
+                    name = keyParts[i];
+                    propName = undefined;
+                    localModel = this.model(name);
+                    localPreviousState = this.state(localModel);
+                }
+                else
+                {
+                    [...this.#models.keys()].flatMap(modelName => {
+                        let model = this.#models.get(modelName);
+                        let previousState = this.state(model);
+                        return this.#generateEvents(type, target, modelName, model, undefined, searchKey, previousState);
+                    })
+                }
+            }
             else if((i == 0 && keyParts[0] === this.options.models.wildcardOperator)
                 || i >= nameParts.length || keyParts[i] === nameParts[i])
             {
@@ -672,9 +768,8 @@ class HydrateApp
                 }
             }
         }
-
         //We didn't find any relevant data for the model based on the search key
-        if(localModel === undefined && previousState === undefined)
+        if((type !== 'route' && propName !== undefined) && localModel === undefined && previousState === undefined)
         {
             return [];
         }
@@ -722,18 +817,7 @@ class HydrateApp
         //Update each element
         [...new Set(updatedElements)].forEach(element => {
             //Look up the lowest level model to bind, let the dispatch method handle generating the specifc event
-            let modelName:string = element.attributes[modelAttribute].value;
-            let rootModelName = modelName.split(this.options.models.nestedOperator)[0];
-            //If generic, bind all models to it
-            let models = rootModelName !== this.options.models.wildcardOperator
-                ? [this.model(rootModelName)] : this.models
-            
-            models.forEach(model => {
-                if(model == null)
-                    return;
-                let previousState = this.state(model);
-                this.dispatch("bind", model, undefined, previousState, element, "domOnly");
-            })
+            this.dispatch("bind", undefined, undefined, undefined, element, "domOnly", "*");
         });
     }
     #inputListener(event) {
@@ -748,72 +832,91 @@ class HydrateApp
         }
     }
     /** Updates the DOM using the provided model event */
-    #dom(event: HydrateModelEvent, target?: HTMLElement)
+    async #dom(event: HydrateModelEvent, target: HTMLElement, routerContext: HydrateRouterContext): Promise<void>
     {
-        if(target == null)
-            target = this.root;
-        let partOfTemplate = target;
-        do {
-            //Don't trigger an event if it's inside a template
-            if(partOfTemplate.attributes[this.attribute(this.options.dom.attributes.template)])
-                return;
-            partOfTemplate = partOfTemplate.parentElement;
-        }while(partOfTemplate !== null);
+        try {
+            if(target == null)
+                target = this.root;
+            let partOfTemplate = target;
+            do {
+                //Don't trigger an event if it's inside a template
+                if(partOfTemplate.attributes[this.attribute(this.options.dom.attributes.template)])
+                    return;
+                partOfTemplate = partOfTemplate.parentElement;
+            }while(partOfTemplate !== null);
 
-        //Determine how to update our DOM
-        var attributes = this.#loadDomAttributes(target);
+            //Determine how to update our DOM
+            var attributes = this.#loadDomAttributes(target);
 
-        //If we are static, don't trigger anything
-        if(attributes.static !== undefined && attributes.static[0].arg1 === "true")
-            return;
-        if(attributes.event !== undefined)
-        {
-            let hasEvent = false;
-            attributes.event.forEach(arg => {
-                if(arg.arg1 === event.type)
-                    hasEvent = true;
-            });
-            if(!hasEvent)
+            let routeRequest: HydrateRouteRequest;
+            //Only allow elements with routing to respond to route request
+            if(event.type === 'route')
+            {
+                if(attributes.route === undefined)
+                    return;
+                let result = this.#getDomRouteRequest(event, attributes, routerContext);
+                if(result != null)
+                {
+                    document.title = result.title !== "" ? result.title : document.title;
+                    routeRequest = result.request;
+                }
+            }
+
+            //If we are static, don't trigger anything
+            if(attributes.static !== undefined && attributes.static[0].arg1 === "true")
                 return;
+            if(attributes.event !== undefined)
+            {
+                let hasEvent = false;
+                attributes.event.forEach(arg => {
+                    if(arg.arg1 === event.type)
+                        hasEvent = true;
+                });
+                if(!hasEvent)
+                    return;
+            }
+            if(attributes.condition !== undefined)
+            {
+                let localEvent = this.#createLocalizedEvent(target, event, event.propName);
+                let arg = attributes.condition[0];
+                let expression = `${arg.arg1??""} ${arg.arg2??""} ${arg.arg3??""}`.trim();
+                let prop = this.#getScriptFunction(expression, localEvent, event.prop, routeRequest);
+                if(prop !== true)
+                    return;
+            }
+
+            let responded = false;
+            if(attributes.attribute !== undefined)
+                responded = this.#updateHTMLAttribute(target, event, attributes, routeRequest) || responded;
+            if(attributes.property !== undefined)
+                responded = this.#updateHTMLProperty(target, event, attributes, routeRequest) || responded;
+            if(attributes.toggle !== undefined)
+                responded = this.#updateHTMLToggleAttribute(target, event, attributes, routeRequest) || responded;
+            if(attributes.class !== undefined)
+                responded = this.#updateHTMLToggleClass(target, event, attributes, routeRequest) || responded;
+
+            if(attributes.callback !== undefined)
+                responded = this.#updateHTMLCallback(target, event, attributes, routeRequest) || responded;
+            if(attributes.handler !== undefined)
+                responded = this.#updateHTMLHandler(target, event, attributes, routeRequest) || responded;
+            if(attributes.function !== undefined)
+                responded = this.#updateHTMLFunction(target, event, attributes, routeRequest) || responded;
+            if(attributes.dispatch !== undefined)
+                responded = this.#updateHTMLDispatch(target, event, attributes, routeRequest) || responded;
+
+            if(attributes.component !== undefined)
+                responded = await this.#updateHTMLComponent(target, event, attributes, routeRequest) || responded;
+
+            if(attributes.delete !== undefined)
+                responded = this.#updateHTMLDeleteElement(target, event, attributes, routeRequest) || responded;
+
+            //If we are static, don't trigger anything
+            if(responded === true && attributes.static !== undefined)
+                target.setAttribute(this.attribute(this.options.dom.attributes.static), "true");
         }
-        if(attributes.condition !== undefined)
-        {
-            let localEvent = this.#createLocalizedEvent(target, event, event.propName);
-            let arg = attributes.condition[0];
-            let expression = `${arg.arg1??""} ${arg.arg2??""} ${arg.arg3??""}`.trim();
-            let prop = this.#getScriptFunction(expression, localEvent, event.prop);
-            if(prop(localEvent) !== true)
-                return;
+        catch (error) {
+            console.error("failed to updated element");
         }
-
-        let responded = false;
-        if(attributes.attribute !== undefined)
-            responded = this.#updateHTMLAttribute(target, event, attributes) || responded;
-        if(attributes.property !== undefined)
-            responded = this.#updateHTMLProperty(target, event, attributes) || responded;
-        if(attributes.toggle !== undefined)
-            responded = this.#updateHTMLToggleAttribute(target, event, attributes) || responded;
-        if(attributes.class !== undefined)
-            responded = this.#updateHTMLToggleClass(target, event, attributes) || responded;
-
-        if(attributes.callback !== undefined)
-            responded = this.#updateHTMLCallback(target, event, attributes) || responded;
-        if(attributes.handler !== undefined)
-            responded = this.#updateHTMLHandler(target, event, attributes) || responded;
-        if(attributes.function !== undefined)
-            responded = this.#updateHTMLFunction(target, event, attributes) || responded;
-        if(attributes.dispatch !== undefined)
-            responded = this.#updateHTMLDispatch(target, event, attributes) || responded;
-
-        if(attributes.component !== undefined)
-            responded = this.#updateHTMLComponent(target, event, attributes) || responded;
-
-        if(attributes.delete !== undefined)
-            responded = this.#updateHTMLDeleteElement(target, event, attributes) || responded;
-
-        //If we are static, don't trigger anything
-        if(responded === true && attributes.static !== undefined)
-            target.setAttribute(this.attribute(this.options.dom.attributes.static), "true");
     }
     #loadDomAttributes(target : HTMLElement): HydrateDomUpdateAttributes {
         const app = this;
@@ -843,6 +946,9 @@ class HydrateApp
         attributes.component = getArguments(target, this.options.dom.attributes.component);
         attributes.initialize = getArguments(target, this.options.dom.attributes.initialize);
 
+        attributes.route = getArguments(target, this.options.dom.attributes.route);
+        attributes.page = getArguments(target, this.options.dom.attributes.page);
+
         attributes.event = getArguments(target, this.options.dom.attributes.event);
         attributes.static = getArguments(target, this.options.dom.attributes.static);
         attributes.condition = getArguments(target, this.options.dom.attributes.condition);
@@ -869,6 +975,7 @@ class HydrateApp
     }
     //******** HTML DOM MANIUPLATIONS *****//
     #determinePropValue(event:HydrateModelEvent, arg: HydrateDomAttributeArguments):HydrateDeterminePropResult {
+        //If routing, accept it as valid
         const wildcard = this.options.models.wildcardOperator;
         if(event.propName === undefined)
         {
@@ -912,30 +1019,71 @@ class HydrateApp
         // }
         return new HydrateModelEvent(type, event.model, event.previousState, propName, target, event.hydrate);
     }
-    #getScriptFunction(expression:string, event:HydrateModelEvent, prop) {
+    #getScriptFunction(expression:string, event:HydrateModelEvent, prop, route: HydrateRouteRequest) {
         if(expression === undefined)
-            return () => prop;
+            return prop;
         let match = expression.match(/^{{(.*)}}$/);
         
         if(match != null)
         {
-            return new Function("event", `'use strict'; return ${match[1]}`);
+            return new Function("event", "route", `'use strict'; return ${match[1]}`)(event, route);
         }
 
         let attrib = this.attribute(this.options.dom.attributes.script);
         let element:HTMLElement = document.querySelector(`[${attrib}=${expression}]`);
         
         if(element === undefined)
-            return () => prop;;
+            return prop;
         let func = new Function(`'use strict'; return ${element.innerText.trim()}`)();
         if(func == null || (typeof func !== "function"))
-            return () => prop;
-        return func;
+            return prop;
+        return func(event, route);
     }
-    #insertComponent(templateName:string, event: HydrateModelEvent, propNames:string[], append:boolean) {
-        const templateAttribute = this.attribute(this.options.dom.attributes.template);
-        let template:HTMLElement = document.querySelector(`[${templateAttribute}=${templateName}]`);
+    #getDomRouteRequest(event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes, routerContext: HydrateRouterContext): {title:string, request: HydrateRouteRequest} {
+        if(event.type !== 'route' || attributes.route === undefined)
+            return undefined;
+
+        for(let i = 0; i < attributes.route.length; i++) {
+            let route = attributes.route[i];
+            let match = this.#matchRoute(route.arg1, routerContext);
+            if(match == null)
+                continue;
+            return {
+                title: `${route.arg2 ?? ""} ${route.arg3 ?? ""}`.trim(),
+                request: this.#generateRouteRequest(route.arg1, match, routerContext)
+            };
+        }
         
+        return undefined;
+    }
+    async #getTemplate(templateSearch:string, templateSource:("template"|"url")): Promise<Node[]> {
+        if(templateSource === 'template')
+        {
+            const templateAttribute = this.attribute(this.options.dom.attributes.template);
+            let template:HTMLElement = document.querySelector(`[${templateAttribute}=${templateSearch}]`);
+            if(template == null)
+            {
+                console.error(`cannont find template ${templateSearch} from source ${templateSource}`);
+                return Promise.resolve([]);
+            }
+            return Promise.resolve((template instanceof HTMLTemplateElement)
+                ? [...template.content.childNodes]
+                : [...template.childNodes]);
+        }
+        
+        try {
+            let fetchResult = await fetch(templateSearch);
+            let html = await fetchResult.text();
+            let div = document.createElement("div");
+            div.innerHTML = html;
+            return Promise.resolve([...div.childNodes]);
+        }
+        catch(error) {
+            console.error(error);
+            return Promise.reject(error);
+        }
+    }
+    async #insertComponent(template: Node[], event: HydrateModelEvent, propNames:string[], append:boolean, routeRequest:HydrateRouteRequest) {
         if(template === undefined)
             return undefined;
         let target = event.target;
@@ -965,16 +1113,13 @@ class HydrateApp
                 return;
             let intializeEvent = app.#createLocalizedEvent(element, event, propName);
             intializeEvent.type = 'initialize';
-            func(intializeEvent);
+            func(intializeEvent, routeRequest);
         }
 
         //for(let i = 0; i < propNames.length; i++)
         let children:Node[] = [];
         propNames.forEach(propName => {
-            let nodes = (template instanceof HTMLTemplateElement)
-                ? template.content.childNodes
-                : template.childNodes;
-            nodes.forEach(x => {
+            template.forEach(x => {
                 let node = x.cloneNode(true);
                 children.push(node);
 
@@ -990,7 +1135,7 @@ class HydrateApp
         });
         children.forEach(x => target.appendChild(x));
     }
-    #updateHTMLAttribute(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLAttribute(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes, routeRequest: HydrateRouteRequest): boolean {
         let updated = false;
         attributes.attribute.forEach(arg => {
             //We don't have 
@@ -1006,7 +1151,7 @@ class HydrateApp
                 return false;
                 
             let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
-            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop)(localEvent);
+            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop, routeRequest);
             if(target.attributes[arg.arg2]?.value !== prop)
             {
                 target.setAttribute(arg.arg2, prop);
@@ -1016,7 +1161,7 @@ class HydrateApp
         });
         return updated;
     }
-    #updateHTMLProperty(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLProperty(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes, routeRequest: HydrateRouteRequest): boolean {
         let updated = false;
         attributes.property.forEach(arg => {
             //We don't have 
@@ -1032,7 +1177,7 @@ class HydrateApp
                 return false;
             
             let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
-            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop)(localEvent);
+            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop, routeRequest);
             if(target[arg.arg2] !== prop)
             {
                 target[arg.arg2] = prop;
@@ -1042,7 +1187,7 @@ class HydrateApp
         });
         return updated;
     }
-    #updateHTMLToggleAttribute(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLToggleAttribute(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes, routeRequest: HydrateRouteRequest): boolean {
         let updated = false;
         attributes.toggle.forEach(arg => {
             //We don't have 
@@ -1058,7 +1203,7 @@ class HydrateApp
                 return false;
             
             let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
-            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop)(localEvent);
+            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop, routeRequest);
             if(target.hasAttribute(arg.arg2) !== (prop === true))
             {
                 target.toggleAttribute(arg.arg2, prop === true);
@@ -1067,7 +1212,7 @@ class HydrateApp
         });
         return updated;
     }
-    #updateHTMLToggleClass(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLToggleClass(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes, routeRequest: HydrateRouteRequest): boolean {
         let updated = false;
         attributes.class.forEach(arg => {
             //We don't have 
@@ -1083,7 +1228,7 @@ class HydrateApp
                 return false;
             
             let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
-            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop)(localEvent);
+            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop, routeRequest);
             if(target.classList.contains(arg.arg2) !== (prop === true))
             {
                 target.classList.toggle(arg.arg2, prop === true);
@@ -1092,7 +1237,7 @@ class HydrateApp
         });
         return updated;
     }
-    #updateHTMLDeleteElement(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLDeleteElement(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes, routeRequest: HydrateRouteRequest): boolean {
         let updated = false;
         attributes.delete.forEach(arg => {
             //Determine the value we need to evaluate
@@ -1102,7 +1247,7 @@ class HydrateApp
             
             let expression = `${arg.arg2??""} ${arg.arg3??""}`.trim();
             let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
-            let prop = this.#getScriptFunction(expression, localEvent, propResult.prop)(localEvent);
+            let prop = this.#getScriptFunction(expression, localEvent, propResult.prop, routeRequest);
             if(prop === true)
             {
                 target.parentElement.removeChild(target);
@@ -1111,7 +1256,7 @@ class HydrateApp
         });
         return updated;
     }
-    #updateHTMLCallback(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLCallback(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes, routeRequest: HydrateRouteRequest): boolean {
         let updated = false;
         attributes.callback.forEach(arg => {
             //We don't have 
@@ -1125,7 +1270,7 @@ class HydrateApp
             if(propResult.success === false)
                 return false;
             
-            let propNames = propResult.propName !== undefined
+            let propNames = event.type === "route" || propResult.propName !== undefined
                 ? [propResult.propName]
                 : (event.state instanceof Object) ? Object.keys(event.state) : [undefined];
             let callback = (event.state instanceof Object) ? event.state[arg.arg2] : undefined;
@@ -1133,14 +1278,14 @@ class HydrateApp
                 return false;
             propNames.forEach(propName => {
                 let localEvent = this.#createLocalizedEvent(target, event, propName);
-                let prop = this.#getScriptFunction(arg.arg3, localEvent, undefined)(localEvent);
-                callback(localEvent, prop);
+                let prop = this.#getScriptFunction(arg.arg3, localEvent, undefined, routeRequest);
+                callback(localEvent, prop, routeRequest);
                 updated = true;
             });
         });
         return updated;
     }
-    #updateHTMLFunction(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLFunction(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes, routeRequest: HydrateRouteRequest): boolean {
         let updated = false;
         attributes.function.forEach(arg => {
             //We don't have 
@@ -1154,7 +1299,7 @@ class HydrateApp
             if(propResult.success === false)
                 return false;
 
-            let propNames = propResult.propName !== undefined
+            let propNames = event.type === 'route' || propResult.propName !== undefined
                 ? [propResult.propName]
                 : (event.state instanceof Object) ? Object.keys(event.state) : [undefined];
             //retrieve the function in question
@@ -1164,14 +1309,14 @@ class HydrateApp
 
             propNames.forEach(propName => {
                 let localEvent = this.#createLocalizedEvent(target, event, propName);
-                let prop = this.#getScriptFunction(arg.arg3, localEvent, undefined)(localEvent);
-                func(localEvent, prop);
+                let prop = this.#getScriptFunction(arg.arg3, localEvent, undefined, routeRequest);
+                func(localEvent, prop, routeRequest);
                 updated = true;
             });
         });
         return updated;
     }
-    #updateHTMLHandler(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLHandler(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes, routeRequest: HydrateRouteRequest): boolean {
         let updated = false;
         attributes.handler.forEach(arg => {
             //We don't have 
@@ -1196,8 +1341,8 @@ class HydrateApp
                 target[arg.arg2] = (elementEvent) => {
                     let model = app.model(attributes.model[0].arg1);
                     let localEvent = new HydrateModelEvent("handler", model, app.state(model), propResult.propName, target, app, app.name(model));
-                    let prop = this.#getScriptFunction(arg.arg3, localEvent, undefined)(localEvent);
-                    propResult.prop(elementEvent, localEvent, prop);
+                    let prop = this.#getScriptFunction(arg.arg3, localEvent, undefined, routeRequest);
+                    propResult.prop(localEvent, elementEvent, prop, routeRequest);
                 }
             }
             updated = true;
@@ -1205,7 +1350,7 @@ class HydrateApp
         });
         return updated;
     }
-    #updateHTMLDispatch(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    #updateHTMLDispatch(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes, routeRequest: HydrateRouteRequest): boolean {
         let updated = false;
         let app = this;
         attributes.dispatch.forEach(arg => {
@@ -1220,13 +1365,13 @@ class HydrateApp
             if(propResult.success === false)
                 return false;
 
-            let propNames = propResult.propName !== undefined
+            let propNames = event.type === 'route' || propResult.propName !== undefined
                 ? [propResult.propName]
                 : (event.state instanceof Object) ? Object.keys(event.state) : [undefined];
             //retrieve the function in question
             propNames.forEach(propName => {
                 let localEvent = this.#createLocalizedEvent(target, event, propName);
-                let name = this.#getScriptFunction(arg.arg3, localEvent, localEvent.modelName)(localEvent);
+                let name = this.#getScriptFunction(arg.arg3, localEvent, localEvent.modelName, routeRequest);
                 if(typeof name !== "string")
                     return;
                 let lastIndex = name.lastIndexOf(this.options.models.nestedOperator);
@@ -1240,75 +1385,257 @@ class HydrateApp
         });
         return updated;
     }
-    #updateHTMLComponent(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes): boolean {
+    async #updateHTMLComponent(target: HTMLElement, event: HydrateModelEvent, attributes: HydrateDomUpdateAttributes, routeRequest: HydrateRouteRequest): Promise<boolean> {
         let updated = false;
-        attributes.component.forEach(arg => {
-            //We don't have 
-            if(arg.arg2 === undefined)
-            {
-                console.error(`missing arg2 for hydrate component for element ${target}`);
-                return false;
-            }
-            
-            //Determine the value we need to evaluate
-            let propResult = this.#determinePropValue(event, arg);
-            if(propResult.success === false)
-                return false;
-            const templateName = arg.arg2;
-                
-            const modifiers = arg.arg3 === undefined ? [] : arg.arg3.split(" ");
-            const appendMode = modifiers.indexOf(this.options.dom.modifiers.append) >= 0;
-            const enumerableMode = modifiers.indexOf(this.options.dom.modifiers.enumerable) >= 0;
-
-            if(event.propName !== undefined && (event.state instanceof Object)
-                && enumerableMode && !event.state.propertyIsEnumerable(event.propName))
-                return;
-
-            let propNames = event.propName !== undefined
-                ? [event.propName]
-                : (event.state instanceof Object) ? Object.keys(event.state) : [undefined];
-            
-            //retrieve the function in question
-            propNames.forEach(propName => {
-                let localEvent = this.#createLocalizedEvent(target, event, propName);
-                let componentType: string;
-                if(modifiers.indexOf(this.options.dom.modifiers.prop) >= 0)
-                    componentType = "prop";
-                else if(modifiers.indexOf(this.options.dom.modifiers.model) >= 0)
-                    componentType = "model";
-                else if(modifiers.indexOf(this.options.dom.modifiers.array) >= 0)
-                    componentType = "array";
-                else if(modifiers.indexOf(this.options.dom.modifiers.dictionary) >= 0)
-                    componentType = 'dictionary';
-                else if(localEvent.prop instanceof Array)
-                    componentType = 'array';
-                else if(localEvent.propName === undefined && (typeof localEvent.prop !== "object"))
-                    componentType = 'model';
-                else componentType = 'prop';
-
-                if(componentType === 'model')
+        try {
+            attributes.component.forEach(async (arg) => {
+                //We don't have 
+                if(arg.arg2 === undefined)
                 {
-                    this.#insertComponent(templateName, localEvent, [undefined], appendMode);
-                }
-                else
-                {
-                    let model = (localEvent.model instanceof Object)
-                        ? localEvent.model[localEvent.propName]
-                        : undefined;
-                    let previousSate = (localEvent.previousState instanceof Object)
-                        ? localEvent.previousState[localEvent.propName]
-                        : undefined;
-                    let componentEvent = new HydrateModelEvent(localEvent.type, model, previousSate, undefined, target, this, this.name(model));
-                    let propNames = componentType === 'prop' || !(componentEvent.state instanceof Object)
-                        ? [undefined]
-                        : Object.keys(componentEvent.state);
-                    this.#insertComponent(templateName, componentEvent, propNames, appendMode);
+                    console.error(`missing arg2 for hydrate component for element ${target}`);
+                    return false;
                 }
                 
-                updated = true;
+                if(event.type === 'route')
+                {
+                    if(event.modelName !== attributes.model[0].arg1)
+                        return;
+                }
+                else 
+                {
+                    //Determine the value we need to evaluate
+                    let propResult = this.#determinePropValue(event, arg);
+                    if(propResult.success === false)
+                        return false;
+                }
+                
+                const templateName = arg.arg2;
+                    
+                const modifiers = arg.arg3 === undefined ? [] : arg.arg3.split(" ");
+                const appendMode = modifiers.indexOf(this.options.dom.modifiers.append) >= 0;
+                const enumerableMode = modifiers.indexOf(this.options.dom.modifiers.enumerable) >= 0;
+    
+                if(event.propName !== undefined && (event.state instanceof Object)
+                    && enumerableMode && !event.state.propertyIsEnumerable(event.propName))
+                    return false;
+    
+                //Highjack the route event to only send the generic route
+                let propNames = event.type === "route" || event.propName !== undefined
+                    ? [event.propName]
+                    : (event.state instanceof Object) ? Object.keys(event.state) : [undefined];
+                
+                let componentSource: ("template" | "url") = "template";
+                //Handle component routing
+                if(event.type === 'route' && attributes.route !== undefined)
+                {
+                    let isPage = attributes.page !== undefined;
+                    if(isPage && attributes.page[0].arg1 === "url")
+                        componentSource = "url";
+                    
+                        //If this route request doesn't apply, then skip;
+                    if(routeRequest == null)
+                    {
+                        //If this component is a page component, clear it since we're not on this page
+                        while(isPage && target.firstChild)
+                            target.removeChild(target.firstChild);
+                        return true;
+                    }
+                }
+    
+                let template = await this.#getTemplate(templateName, componentSource);
+    
+                //retrieve the function in question
+                propNames.forEach(async (propName) => {
+                    let localEvent = this.#createLocalizedEvent(target, event, propName);
+                    let componentType: string;
+                    if(modifiers.indexOf(this.options.dom.modifiers.prop) >= 0)
+                        componentType = "prop";
+                    else if(modifiers.indexOf(this.options.dom.modifiers.model) >= 0)
+                        componentType = "model";
+                    else if(modifiers.indexOf(this.options.dom.modifiers.array) >= 0)
+                        componentType = "array";
+                    else if(modifiers.indexOf(this.options.dom.modifiers.dictionary) >= 0)
+                        componentType = 'dictionary';
+                    else if(localEvent.prop instanceof Array)
+                        componentType = 'array';
+                    else if(localEvent.propName === undefined && (typeof localEvent.prop !== "object"))
+                        componentType = 'model';
+                    else componentType = 'prop';
+
+                    if(componentType === 'model')
+                    {
+                        await this.#insertComponent(template, localEvent, [undefined], appendMode, routeRequest);
+                    }
+                    else
+                    {
+                        let model = (localEvent.model instanceof Object)
+                            ? localEvent.model[localEvent.propName]
+                            : undefined;
+                        let previousSate = (localEvent.previousState instanceof Object)
+                            ? localEvent.previousState[localEvent.propName]
+                            : undefined;
+                        let componentEvent = new HydrateModelEvent(localEvent.type, model, previousSate, undefined, target, this, this.name(model));
+                        let propNames = componentType === 'prop' || !(componentEvent.state instanceof Object)
+                            ? [undefined]
+                            : Object.keys(componentEvent.state);
+                        await this.#insertComponent(template, componentEvent, propNames, appendMode, routeRequest);
+                    }
+                    
+                    updated = true;
+                });
+                
             });
-            
+            return updated;
+        }
+        catch (error) {
+            console.error("failed to generate component");
+            return false;
+        }
+    }
+    //=========== Routing =============//
+    #historyListener(event:History) {
+        this.#navigateToRoute(event.state);
+    }
+    #pathToRegex(path:string): RegExp {
+        if(!path)
+            return new RegExp(".*");
+
+        let regex = path.replace(/\//g, "\\/").replace(/:\w+/g, "(.+)");
+        return this.options.router.exactMatch ? RegExp("^" + regex + "$") : RegExp(regex);
+    }
+    #matchRoute(path:string, routerContext:HydrateRouterContext): RegExpMatchArray {
+        return routerContext.path.match(this.#pathToRegex(path));
+    }
+    #generateRouteRequest(path:string, match:RegExpMatchArray, routerContext:HydrateRouterContext): HydrateRouteRequest {
+        return {
+            route: path,
+            url: routerContext.url,
+            pathname: routerContext.pathname,
+            search: routerContext.search,
+            hash: routerContext.hash,
+            params: this.#getRouteParams(path, match),
+            query: this.#getQueryParams(routerContext.search),
+            state: routerContext.state,
+        };
+    }
+    #getRouteParams(route:string, match:RegExpMatchArray): object {
+        let params = {};
+        let keys = route.match(/:(\w+)/g);
+        if(keys)
+            for(let i = 0; i < keys.length; i++)
+                params[keys[i].substring(1)] = match[i + 1];
+        return params;
+    };
+    #getQueryParams(search: string): object {
+        let query = {};
+        location.search.substring(1, location.search.length).split("&").forEach(x => {
+            let parts = x.split("=");
+            if(parts[0] === "")
+                return;
+            query[parts[0]] = parts[1];
         });
-        return updated;
+        return query;
+    }
+    async #navigateToRoute(state) {
+        const app = this;
+        //Supress hash changes causing routing unless user opts in for it
+        if(!this.options.router.hashRouting && 
+            (this.#routerContext.pathname === location.pathname &&
+                this.#routerContext.search === location.search &&
+                this.#routerContext.hash !== location.hash))
+            //If we are not using hash based routing and we only had a hash change, then don't trigger routing
+            return;
+
+        let routerContext:HydrateRouterContext = {
+            path: !app.options.router.hashRouting ? location.pathname
+                : (location.hash === "" ? "/" : location.hash),
+            pathname: location.pathname,
+            search: location.search,
+            hash: location.hash,
+            url: window.location.pathname + window.location.search + window.location.hash,
+            state: state
+        };
+        this.#routerContext = routerContext;
+
+        const routeMatches = this.#routes.map(x => {
+            return {
+                route: x,
+                result: this.#matchRoute(x.path, routerContext)
+            }
+        }).filter(x => x.result != null);
+
+
+        const resolve = async function() {
+            return await app.#routeDom(routerContext);
+        }
+        const middlewarePipeline = function* () {
+            for(let i = 0; i < routeMatches.length; i++)
+            {
+                yield routeMatches[i];
+            }
+        };
+        const middleware = middlewarePipeline();
+
+        const continuePipeline = async function() {
+            let result = middleware.next();
+            if(result.done === true)
+            {
+                return await resolve();
+            }
+
+            let match = result.value;
+            
+            let req:HydrateRouteRequest = app.#generateRouteRequest(match.route.path, match.result, routerContext);
+            let res:HydrateRouteResponse = {
+                hydrate: app,
+                continue: continuePipeline,
+                resolve: resolve
+            };
+
+            return await match.route.callback(req, res);
+        }
+
+        return continuePipeline();
+    }
+    #routeDom(routeContext: HydrateRouterContext) {
+        this.dispatch("route", undefined, undefined, undefined, this.root, "domOnly", "*");
+    }
+
+    //Queries the routes
+    routes(path: string, handler: (req:HydrateRouteRequest, res:HydrateRouteResponse) => Promise<any>) :HydrateRoute[] {
+        return this.#routes.filter(route => 
+            (path == null || route.path === path) && (handler == null || handler === route.callback)
+        );
+    }
+    route(path:string, callback: (req:HydrateRouteRequest, res:HydrateRouteResponse) => Promise<any>): HydrateRoute {
+        let route:HydrateRoute = {
+            path: path,
+            callback: callback
+        };
+        this.#routes.push(route);
+        return route;
+    }
+    //Navigates to the url
+    navigate(url:string, state: any) {
+        if(url == null)
+            url = window.location.pathname + window.location.search + window.location.hash;
+        history.pushState(state, "", url);
+        this.#navigateToRoute(state);
+    }
+    //Reloads the current page
+    reload() {
+        history.go();
+    }
+    //Goes backwards in browser history
+    back() {
+        history.back();
+    }
+    //Goes forward in browser history
+    forward() {
+        history.forward();
+    }
+    //Updates the history of the current entry
+    history(state, url?:string) {
+        history.replaceState(state, "", url === undefined ? this.#routerContext.url : url)
     }
 }

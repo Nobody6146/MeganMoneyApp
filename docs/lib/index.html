@@ -24,10 +24,31 @@
                 }
             </script>
             
-            <h1 h-model="state" h-attribute="color style StyleScript" h-static h-condition="CanChangeColorScript">Hydrate Demo</h1>
+            <div>
+                <template h-template="HomePage">
+                    <h1 h-model="_">Welcome home</h1>
+                    <script h-model="_" h-initialize>
+                        (event, routeRequest) => {
+                            console.log(routeRequest);
+                        }
+                    </script>
+                </template>
+                <template h-template="AboutPage">
+                    <h1 h-model="_">About</h1>
+                </template>
+
+                <div>
+                    <nav>
+                        <a href="#home">Home</a>
+                        <a href="#about">About</a>
+                    </nav>
+                    <section h-model="state.home" h-component="* HomePage model" h-event="route" h-route="/ Demo: Home;#home Demo: Home" h-page="template"></section>
+                    <section h-model="state" h-component="* AboutPage model" h-event="route" h-route="#about Demo: About" h-page="template"></section>
+                </div>
+            </div>
             
             <div h-model="state" h-class="addStyle fontStyle">
-                <h2 h-model="state" h-attribute="greeting name" h-property="greeting innerHTML"></h2>
+                <h3 h-model="state" h-attribute="greeting name" h-property="greeting innerHTML"></h3>
                 <p>
                     <span h-model="state.data.person.contact" h-property="firstName innerHTML"></span>
                     <span h-model="state.data.person.contact" h-property="lastName innerHTML"></span>
@@ -49,8 +70,8 @@
                     return `color: ${event.prop}; width: 10px;`
                 }
             </script>
-            <span h-model="state" h-attribute="color style CreateStyleScript"></span>
-            <span h-model="state" h-attribute="class class {{`${event.propName}-color`}}"></span>
+            <span h-model="state" h-attribute="color style CreateStyleScript">Color changing text</span>
+            <span h-model="state" h-attribute="class class {{`${event.propName}-color`}}">Class changing text</span>
     
             <div h-router>
                 <section h-model="page" h-route="/products/:id url ./products/index.html"></section>
@@ -89,8 +110,12 @@
         </main>
         
         <script>
+            function logger(event) { 
+                console.log(event)
+            };
             let hydrate = new HydrateApp();
-            hydrate.subscribe("state", (event) => console.log(event));
+            hydrate.subscribe("*", (event) => {console.log("hey, we got something");console.log(event);});
+            hydrate.subscribe("state", logger);
             hydrate.subscribe("state.data.person.contact", (event) => {console.log("wow!"); console.log(event)});
             let state = {greeting: "Hello world"};
             let model = hydrate.bind("state", state);
@@ -103,7 +128,7 @@
                 }
             };
             model.secret = true;
-            model.click = (clickEvent, hydrateEvent) => {
+            model.click = (hydrateEvent, clickEvent) => {
                 console.log("you clicked me!");
                 console.log(hydrateEvent);
             }
@@ -115,6 +140,12 @@
             function yellFunction(hydrateEvent, arg) {
                 console.log(arg);
             }
+
+            hydrate.route("", async (req, res) => { 
+                console.log(`routing to url ${req.url}`);
+                return await res.continue()
+            });
+            hydrate.navigate();
         </script>
     </body>
 </html>
