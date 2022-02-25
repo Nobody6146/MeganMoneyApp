@@ -8,6 +8,12 @@
             .fontStyle {
                 color: red;
             }
+            .animation {
+                transition: transform 350ms;
+            }
+            .animation-slideIn {
+                transform: translate(100vw, 0);
+            }
         </style>
     </head>
     <body>
@@ -25,16 +31,37 @@
             </script>
             
             <div>
+                <script h-script="AnimateScript">
+                    (event) => {
+                        return `* ${event.target.attributes['x-animation'].value} {{false}}`
+                    }
+                </script>
+
                 <template h-template="HomePage">
-                    <h1 h-model="_">Welcome home</h1>
-                    <script h-initialize>
-                        (event, routeRequest) => {
-                            console.log(routeRequest);
-                        }
-                    </script>
+                    <div class="animation animation-slideIn" h-model="_" h-attribute="* h-class AnimateScript" x-animation="animation-slideIn">
+                        <h1 h-model="_">Welcome home</h1>
+                        <script h-initialize>
+                            (event, routeRequest) => {
+                                console.log(event);
+                                console.log(routeRequest);
+                                if(event.model == null)
+                                {
+                                    let model = hydrate.model(event.rootModelName);
+                                    if(model === undefined)
+                                        hydrate.bind(event.modelName, {home: {}});
+                                    else
+                                    {
+                                        model.home = {name: "bob"};
+                                    }
+                                }
+                            }
+                        </script>
+                    </div>
                 </template>
                 <template h-template="AboutPage">
-                    <h1 h-model="_">About</h1>
+                    <div class="animation animation-slideIn" h-model="_" h-attribute="* h-class AnimateScript" x-animation="animation-slideIn">
+                        <h1 h-model="_">About</h1>
+                    </div>
                 </template>
 
                 <div>

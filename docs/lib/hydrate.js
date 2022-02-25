@@ -793,7 +793,7 @@ class HydrateApp {
                 let localEvent = this.#createLocalizedEvent(target, event, event.propName);
                 let arg = attributes.condition[0];
                 let expression = `${arg.arg1 ?? ""} ${arg.arg2 ?? ""} ${arg.arg3 ?? ""}`.trim();
-                let prop = this.#getScriptFunction(expression, localEvent, event.prop, routeRequest);
+                let prop = this.#getScriptValue(expression, localEvent, event.prop, routeRequest);
                 if (prop !== true)
                     return;
             }
@@ -915,9 +915,9 @@ class HydrateApp {
         //             break;
         //     }
         // }
-        return new HydrateModelEvent(type, event.model, event.previousState, propName, target, event.hydrate);
+        return new HydrateModelEvent(type, event.model, event.previousState, propName, target, event.hydrate, event.modelName);
     }
-    #getScriptFunction(expression, event, prop, route) {
+    #getScriptValue(expression, event, prop, route) {
         if (expression === undefined)
             return prop;
         let match = expression.match(/^{{(.*)}}$/);
@@ -982,25 +982,23 @@ class HydrateApp {
         const app = this;
         const modelAttribute = this.attribute(this.options.dom.attributes.model);
         const insertionOperator = this.options.models.insertionOperator;
-        const selector = `[${modelAttribute}*=${insertionOperator}]`;
+        const modelSelector = `[${modelAttribute}*=${insertionOperator}]`;
         const intializeAttribute = this.attribute(this.options.dom.attributes.initialize);
-        const processNode = function (element, propName) {
-            //Set the model for the elements
-            if (element.matches(selector)) {
-                let localEvent = app.#createLocalizedEvent(element, event, propName);
-                let modelName = localEvent.propFullName ?? localEvent.modelName;
-                let value = element.attributes[modelAttribute].value.trim().replace(insertionOperator, modelName);
-                element.setAttribute(modelAttribute, value);
-            }
+        const initializeSelector = `[${intializeAttribute}]`;
+        const insertModelName = function (element, propName) {
+            let localEvent = app.#createLocalizedEvent(element, event, propName);
+            let modelName = localEvent.propFullName ?? localEvent.modelName;
+            let value = element.attributes[modelAttribute].value.trim().replace(insertionOperator, modelName);
+            element.setAttribute(modelAttribute, value);
+        };
+        const initializeComponent = function (element, propName) {
             //Initialize the component if script provided
-            if (element.hasAttribute(intializeAttribute)) {
-                let func = new Function(`'use strict'; return ${element.innerText.trim()}`)();
-                if (func == null || (typeof func !== "function"))
-                    return;
-                let intializeEvent = app.#createLocalizedEvent(element, event, propName);
-                intializeEvent.type = 'initialize';
-                func(intializeEvent, routeRequest);
-            }
+            let func = new Function(`'use strict'; return ${element.innerText.trim()}`)();
+            if (func == null || (typeof func !== "function"))
+                return;
+            let intializeEvent = app.#createLocalizedEvent(element, event, propName);
+            intializeEvent.type = 'initialize';
+            func(intializeEvent, routeRequest);
         };
         //for(let i = 0; i < propNames.length; i++)
         let children = [];
@@ -1011,9 +1009,16 @@ class HydrateApp {
                 if (!(node instanceof HTMLElement))
                     return;
                 //Inject model name and initialize component
-                processNode(node, propName);
-                node.querySelectorAll(selector).forEach(element => {
-                    processNode(element, propName);
+                if (node.matches(modelSelector))
+                    insertModelName(node, propName);
+                node.querySelectorAll(modelSelector).forEach(element => {
+                    insertModelName(element, propName);
+                });
+                //Call initialization script
+                if (node.matches(initializeSelector))
+                    initializeComponent(node, propName);
+                node.querySelectorAll(initializeSelector).forEach(element => {
+                    initializeComponent(element, propName);
                 });
             });
         });
@@ -1032,7 +1037,7 @@ class HydrateApp {
             if (propResult.success === false)
                 return false;
             let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
-            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop, routeRequest);
+            let prop = this.#getScriptValue(arg.arg3, localEvent, propResult.prop, routeRequest);
             if (target.attributes[arg.arg2]?.value !== prop) {
                 target.setAttribute(arg.arg2, prop);
             }
@@ -1053,7 +1058,7 @@ class HydrateApp {
             if (propResult.success === false)
                 return false;
             let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
-            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop, routeRequest);
+            let prop = this.#getScriptValue(arg.arg3, localEvent, propResult.prop, routeRequest);
             if (target[arg.arg2] !== prop) {
                 target[arg.arg2] = prop;
             }
@@ -1074,7 +1079,7 @@ class HydrateApp {
             if (propResult.success === false)
                 return false;
             let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
-            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop, routeRequest);
+            let prop = this.#getScriptValue(arg.arg3, localEvent, propResult.prop, routeRequest);
             if (target.hasAttribute(arg.arg2) !== (prop === true)) {
                 target.toggleAttribute(arg.arg2, prop === true);
                 updated = true;
@@ -1095,7 +1100,7 @@ class HydrateApp {
             if (propResult.success === false)
                 return false;
             let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
-            let prop = this.#getScriptFunction(arg.arg3, localEvent, propResult.prop, routeRequest);
+            let prop = this.#getScriptValue(arg.arg3, localEvent, propResult.prop, routeRequest);
             if (target.classList.contains(arg.arg2) !== (prop === true)) {
                 target.classList.toggle(arg.arg2, prop === true);
                 updated = true;
@@ -1112,7 +1117,7 @@ class HydrateApp {
                 return false;
             let expression = `${arg.arg2 ?? ""} ${arg.arg3 ?? ""}`.trim();
             let localEvent = this.#createLocalizedEvent(target, event, propResult.propName);
-            let prop = this.#getScriptFunction(expression, localEvent, propResult.prop, routeRequest);
+            let prop = this.#getScriptValue(expression, localEvent, propResult.prop, routeRequest);
             if (prop === true) {
                 target.parentElement.removeChild(target);
                 updated = true;
@@ -1140,7 +1145,7 @@ class HydrateApp {
                 return false;
             propNames.forEach(propName => {
                 let localEvent = this.#createLocalizedEvent(target, event, propName);
-                let prop = this.#getScriptFunction(arg.arg3, localEvent, undefined, routeRequest);
+                let prop = this.#getScriptValue(arg.arg3, localEvent, undefined, routeRequest);
                 callback(localEvent, prop, routeRequest);
                 updated = true;
             });
@@ -1168,7 +1173,7 @@ class HydrateApp {
                 return false;
             propNames.forEach(propName => {
                 let localEvent = this.#createLocalizedEvent(target, event, propName);
-                let prop = this.#getScriptFunction(arg.arg3, localEvent, undefined, routeRequest);
+                let prop = this.#getScriptValue(arg.arg3, localEvent, undefined, routeRequest);
                 func(localEvent, prop, routeRequest);
                 updated = true;
             });
@@ -1195,7 +1200,7 @@ class HydrateApp {
                 target[arg.arg2] = (elementEvent) => {
                     let model = app.model(attributes.model[0].arg1);
                     let localEvent = new HydrateModelEvent("handler", model, app.state(model), propResult.propName, target, app, app.name(model));
-                    let prop = this.#getScriptFunction(arg.arg3, localEvent, undefined, routeRequest);
+                    let prop = this.#getScriptValue(arg.arg3, localEvent, undefined, routeRequest);
                     propResult.prop(localEvent, elementEvent, prop, routeRequest);
                 };
             }
@@ -1222,7 +1227,7 @@ class HydrateApp {
             //retrieve the function in question
             propNames.forEach(propName => {
                 let localEvent = this.#createLocalizedEvent(target, event, propName);
-                let name = this.#getScriptFunction(arg.arg3, localEvent, localEvent.modelName, routeRequest);
+                let name = this.#getScriptValue(arg.arg3, localEvent, localEvent.modelName, routeRequest);
                 if (typeof name !== "string")
                     return;
                 let lastIndex = name.lastIndexOf(this.options.models.nestedOperator);
